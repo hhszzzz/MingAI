@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { calculateDaliuren, toDaliurenJson, toDaliurenText } from 'taibu-core';
+import { resolveSingleKeMisclassifiedAsMaoXing } from '../dist/domains/daliuren/supplements.js';
 
 test('daliuren basic output should have correct structure and field types', () => {
   const result = calculateDaliuren({
@@ -98,4 +99,44 @@ test('daliuren text rendering should return non-empty string', () => {
   const text = toDaliurenText(result);
   assert.equal(typeof text, 'string');
   assert.ok(text.length > 0, 'toDaliurenText should return a non-empty string');
+});
+
+test('daliuren should keep the 戊辰日丁巳时 screenshot case as 重审', () => {
+  const result = calculateDaliuren({
+    date: '2026-06-23',
+    hour: 10,
+    minute: 0,
+    timezone: 'Asia/Shanghai',
+  });
+
+  assert.equal(result.dateInfo.bazi, '丙午 甲午 戊辰 丁巳');
+  assert.equal(result.sanChuan.method, '重审');
+  assert.deepEqual(
+    [result.sanChuan.chu[0], result.sanChuan.zhong[0], result.sanChuan.mo[0]],
+    ['申', '戌', '子'],
+  );
+});
+
+test('daliuren should correct an昴星 fallback when one four-lesson ke is present', () => {
+  const correction = resolveSingleKeMisclassifiedAsMaoXing('昴星', {
+    ganYang: '未',
+    ganYing: '酉',
+    zhiYang: '午',
+    zhiYing: '申',
+    gan: '戊',
+    zhi: '辰',
+  });
+
+  assert.deepEqual(correction, { method: '重审', chu: '申' });
+  assert.equal(
+    resolveSingleKeMisclassifiedAsMaoXing('昴星', {
+      ganYang: '未',
+      ganYing: '酉',
+      zhiYang: '午',
+      zhiYing: '午',
+      gan: '戊',
+      zhi: '辰',
+    }),
+    null,
+  );
 });

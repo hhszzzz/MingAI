@@ -11,7 +11,22 @@ import {
     LIU_CHONG_TABLE,
     SAN_HE_TABLE,
 } from '@/lib/divination/bazi';
+import { parseNumberParam } from '@/lib/divination/bazi-form-utils';
 import type { HeavenlyStem, BaziFormData, TenGod } from '@/types';
+
+describe('parseNumberParam', () => {
+    it('preserves early-child-hour zero values from URL and form inputs', () => {
+        assert.equal(parseNumberParam('0', 12), 0);
+        assert.equal(parseNumberParam('00', 12), 0);
+        assert.equal(parseNumberParam('12', 0), 12);
+    });
+
+    it('uses the fallback only for missing or invalid values', () => {
+        assert.equal(parseNumberParam(null, 12), 12);
+        assert.equal(parseNumberParam('', 12), 12);
+        assert.equal(parseNumberParam('not-a-number', 12), 12);
+    });
+});
 
 // ===== 1. 十神计算 (calculateTenGod) =====
 
@@ -240,6 +255,27 @@ describe('HIDDEN_STEMS 地支藏干', () => {
 // ===== 6. calculateBaziChartBundle 集成测试 =====
 
 describe('calculateBaziChartBundle 集成测试', () => {
+    it('00:xx 早子时应保留为子时，不应退化为 12:xx 午时', () => {
+        const base: BaziFormData = {
+            name: '早子时测试',
+            gender: 'male',
+            birthYear: 2000,
+            birthMonth: 1,
+            birthDay: 1,
+            birthHour: 0,
+            birthMinute: 30,
+            calendarType: 'solar',
+            isLeapMonth: false,
+        };
+
+        const early = calculateBaziChartBundle(base).output;
+        const noon = calculateBaziChartBundle({ ...base, birthHour: 12 }).output;
+
+        assert.equal(early.fourPillars.hour.branch, '子');
+        assert.equal(noon.fourPillars.hour.branch, '午');
+        assert.notEqual(early.fourPillars.hour.stem, noon.fourPillars.hour.stem);
+    });
+
     it('公历 1990-01-01 12:00 男 → 四柱计算正确', () => {
         const formData: BaziFormData = {
             name: '测试',

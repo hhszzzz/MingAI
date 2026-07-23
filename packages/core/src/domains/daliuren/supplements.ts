@@ -5,6 +5,11 @@
 
 import { DI_ZHI, GAN_WUXING, TIAN_GAN, ZHI_WUXING } from '../../data/ganzhi.js';
 
+export type SingleKeResolution = {
+  method: '元首' | '重审';
+  chu: string;
+};
+
 /** 地支序号 */
 function zhiIndex(zhi: string): number {
   const i = DI_ZHI.indexOf(zhi as typeof DI_ZHI[number]);
@@ -128,6 +133,51 @@ interface SiKeData {
   zhiYing: string;  // 四课上神
   gan: string;      // 日干
   zhi: string;      // 日支
+}
+
+/**
+ * 校验库返回的无克课体。
+ *
+ * 九宗门的昴星只应在四课没有明确上克下或下贼上时进入。第三方库
+ * 使用静态课表，个别课例可能把唯一的贼克误标为昴星；这时可安全地
+ * 用唯一贼克课的上神重建初传。多课并见的比用/涉害交由原库处理，避免
+ * 在这里重复实现取比、涉害深浅等规则。
+ */
+export function resolveSingleKeMisclassifiedAsMaoXing(
+  method: string,
+  siKe: SiKeData,
+): SingleKeResolution | null {
+  if (method !== '昴星') return null;
+
+  const lessons = [
+    [siKe.ganYang, GAN_WUXING[siKe.gan]],
+    [siKe.ganYing, ZHI_WUXING[siKe.ganYang]],
+    [siKe.zhiYang, ZHI_WUXING[siKe.zhi]],
+    [siKe.zhiYing, ZHI_WUXING[siKe.zhiYang]],
+  ];
+
+  // 上克下与下贼上不能混为一谈；有贼时优先按重审取传。
+  const upperKeLower = lessons
+    .filter(([upper, lower]) => upper && lower && keRelation(
+      ZHI_WUXING[upper] || upper,
+      lower,
+    ))
+    .map(([upper]) => upper);
+  const lowerKeUpper = lessons
+    .filter(([upper, lower]) => upper && lower && keRelation(
+      lower,
+      ZHI_WUXING[upper] || upper,
+    ))
+    .map(([upper]) => upper);
+
+  const candidates = lowerKeUpper.length > 0 ? lowerKeUpper : upperKeLower;
+  const uniqueCandidates = [...new Set(candidates)];
+  if (uniqueCandidates.length !== 1) return null;
+
+  return {
+    method: lowerKeUpper.length > 0 ? '重审' : '元首',
+    chu: uniqueCandidates[0],
+  };
 }
 
 /**

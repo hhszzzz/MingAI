@@ -3,7 +3,7 @@
  * 核心算法使用 liuren-ts-lib，补充课体细分、十二长生、五行旺衰等
  */
 
-import { getLiuRenByDate } from 'liuren-ts-lib';
+import * as liurenLib from 'liuren-ts-lib';
 import { DEFAULT_DIVINATION_TIMEZONE, zonedWallClockToSystemDate } from '../../shared/timezone-utils.js';
 import {
   DI_ZHI,
@@ -16,6 +16,7 @@ import {
   getChangSheng,
   getTaoHua,
   getWangShuai,
+  resolveSingleKeMisclassifiedAsMaoXing,
 } from './supplements.js';
 import type {
   DaliurenDateInfo,
@@ -27,6 +28,21 @@ import type {
   DaliurenTianDiPan,
   GongInfo,
 } from './types.js';
+
+// These helpers are exported by liuren-ts-lib at runtime but omitted from its
+// package-level declaration surface. Keep the adapter typed locally so the
+// correction reuses the library's own pan lookup and filling logic.
+type LiuRenInternalApi = {
+  getShangShen: (tianDiPan: unknown, zhi: string) => string;
+  fillSanChuan: (
+    sanChuan: { 初传: string[]; 中传: string[]; 末传: string[]; 课体: string },
+    tianDiPan: unknown,
+    dunGan: unknown,
+    riGan: string,
+  ) => { 初传: string[]; 中传: string[]; 末传: string[]; 课体: string };
+};
+
+const liurenInternal = liurenLib as unknown as LiuRenInternalApi;
 
 /**
  * 大六壬排盘主函数
@@ -40,7 +56,7 @@ export function calculateDaliurenData(input: DaliurenInput): DaliurenOutput {
   const dateObj = zonedWallClockToSystemDate({ year: y, month: m, day: d, hour, minute }, timezone);
 
   // 2. 调用 liuren-ts-lib 核心排盘
-  const raw = getLiuRenByDate(dateObj);
+  const raw = liurenLib.getLiuRenByDate(dateObj);
 
   // 3. 解析基础信息
   const bazi = raw.dateInfo?.bazi || '';
@@ -92,12 +108,47 @@ export function calculateDaliurenData(input: DaliurenInput): DaliurenOutput {
 
   // 7. 三传
   const rawSanChuan = raw.sanChuan || {};
-  const sanChuan: DaliurenSanChuan = {
+  let sanChuan: DaliurenSanChuan = {
     chu: rawSanChuan['初传'] || [],
     zhong: rawSanChuan['中传'] || [],
     mo: rawSanChuan['末传'] || [],
     method: rawSanChuan['课体'] || '',
   };
+
+  // liuren-ts-lib 1.9.0 uses a static sanchuan table. Validate its昴星
+  // fallback against the actual four lessons before exposing the result.
+  const keCorrection = resolveSingleKeMisclassifiedAsMaoXing(
+    sanChuan.method,
+    {
+      ganYang: extractShangShen(siKe.yiKe),
+      ganYing: extractShangShen(siKe.erKe),
+      zhiYang: extractShangShen(siKe.sanKe),
+      zhiYing: extractShangShen(siKe.siKe),
+      gan: riGan,
+      zhi: riZhi,
+    },
+  );
+  if (keCorrection && raw.tiandipan && raw.dunGan) {
+    const zhong = liurenInternal.getShangShen(raw.tiandipan, keCorrection.chu);
+    const mo = liurenInternal.getShangShen(raw.tiandipan, zhong);
+    const corrected = liurenInternal.fillSanChuan(
+      {
+        初传: [keCorrection.chu, '', '', ''],
+        中传: [zhong, '', '', ''],
+        末传: [mo, '', '', ''],
+        课体: keCorrection.method,
+      },
+      raw.tiandipan,
+      raw.dunGan,
+      riGan,
+    );
+    sanChuan = {
+      chu: corrected.初传,
+      zhong: corrected.中传,
+      mo: corrected.末传,
+      method: corrected.课体,
+    };
+  }
 
   // 8. 课体细分
   // 从四课数据中提取上神

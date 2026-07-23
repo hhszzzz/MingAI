@@ -33,6 +33,7 @@ import { loadLatestConversationAnalysisSnapshot } from '@/lib/chat/conversation-
 import { createSavedChart, loadSavedChart } from '@/lib/user/charts-client';
 import { useSessionMembership } from '@/lib/hooks/useSessionMembership';
 import { parseBirthTimeString } from '@/lib/divination/birth-time';
+import { parseNumberParam } from '@/lib/divination/bazi-form-utils';
 import { parseLongitude } from '@/lib/divination/place-resolution';
 import { useAdminJsonCopy } from '@/lib/admin/useAdminJsonCopy';
 import { CopyTextModal } from '@/components/divination/CopyTextModal';
@@ -157,8 +158,8 @@ function BaziResultContent() {
                     birthYear: year,
                     birthMonth: month,
                     birthDay: day,
-                    birthHour: parsedBirthTime?.hour || 12,
-                    birthMinute: parsedBirthTime?.minute || 0,
+                    birthHour: parsedBirthTime?.hour ?? 12,
+                    birthMinute: parsedBirthTime?.minute ?? 0,
                     isUnknownTime: !hasTime,
                     calendarType: (data.calendar_type as CalendarType) || 'solar',
                     isLeapMonth: data.is_leap_month || false,
@@ -204,8 +205,8 @@ function BaziResultContent() {
             birthYear: Number(searchParams.get('year')) || 1990,
             birthMonth: Number(searchParams.get('month')) || 1,
             birthDay: Number(searchParams.get('day')) || 1,
-            birthHour: isUnknownTime ? 12 : (Number(hourParam) || 12), // 未知时默认用午时计算
-            birthMinute: Number(searchParams.get('minute')) || 0,
+            birthHour: isUnknownTime ? 12 : parseNumberParam(hourParam, 12), // 未知时默认用午时计算
+            birthMinute: parseNumberParam(searchParams.get('minute'), 0),
             calendarType: (searchParams.get('calendar') as CalendarType) || 'solar',
             isLeapMonth: searchParams.get('leap') === '1',
             birthPlace: searchParams.get('place') || undefined,

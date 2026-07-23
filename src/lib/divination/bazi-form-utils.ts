@@ -18,6 +18,16 @@ export type CalendarSwitchResult = {
     isLeapMonth: boolean;
 };
 
+/** Parse a numeric query/form value without treating the valid value 0 as missing. */
+export function parseNumberParam(value: string | null, fallback: number): number {
+    if (value === null || value.trim() === '') {
+        return fallback;
+    }
+
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? fallback : parsed;
+}
+
 const normalizeNow = (now: Date) => ({
     year: now.getFullYear(),
     month: now.getMonth() + 1,
