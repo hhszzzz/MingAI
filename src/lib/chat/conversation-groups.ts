@@ -6,7 +6,7 @@
  */
 import {
   MessageSquare, Orbit, Gem, Dices, Brain, Sparkles,
-  HeartHandshake, Hand, User, Compass, ScrollText,
+  HeartHandshake, Hand, User, Compass, ScrollText, Flower2, Waypoints,
 } from 'lucide-react';
 import type { ConversationSourceType } from '@/types';
 
@@ -27,10 +27,12 @@ export const SOURCE_TYPE_CONFIG: Record<ConversationSourceType, {
   face: { label: '面相分析', icon: User, color: 'text-foreground-secondary' },
   qimen: { label: '奇门遁甲', icon: Compass, color: 'text-foreground-secondary' },
   daliuren: { label: '大六壬', icon: ScrollText, color: 'text-foreground-secondary' },
+  meihua: { label: '梅花易数', icon: Flower2, color: 'text-foreground-secondary' },
+  xiaoliuren: { label: '小六壬', icon: Waypoints, color: 'text-foreground-secondary' },
   dream: { label: '周公解梦', icon: MessageSquare, color: 'text-foreground-secondary' },
 };
 
 /** 显示顺序 — bazi_personality 合并到 bazi_wuxing */
 export const SOURCE_TYPE_ORDER: ConversationSourceType[] = [
-  'chat', 'dream', 'bazi_wuxing', 'ziwei', 'tarot', 'liuyao', 'qimen', 'daliuren', 'mbti', 'hepan', 'palm', 'face',
+  'chat', 'dream', 'bazi_wuxing', 'ziwei', 'tarot', 'liuyao', 'qimen', 'daliuren', 'meihua', 'xiaoliuren', 'mbti', 'hepan', 'palm', 'face',
 ];

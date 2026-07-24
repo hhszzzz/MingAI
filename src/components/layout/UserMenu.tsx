@@ -100,7 +100,7 @@ export function SidebarUserCard({ user, collapsed = false }: SidebarUserCardProp
   const isDesktopSidebar = useIsDesktopSidebar();
   const { isFeatureEnabled } = useFeatureToggles();
   const { profile, loading: profileLoading, resolved: profileResolved, error: profileError } = useCurrentUserProfile({ enabled: isDesktopSidebar });
-  const personalizationEnabled = isFeatureEnabled('ai-personalization');
+  const personalizationEnabled = isFeatureEnabled('chat') && isFeatureEnabled('ai-personalization');
   const chartsEnabled = isFeatureEnabled('charts');
   const helpEnabled = isFeatureEnabled('help');
 

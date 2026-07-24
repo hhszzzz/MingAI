@@ -111,8 +111,11 @@ function SidebarInner() {
     const filteredNavItems = useMemo(() => navItems
         .filter((item) => isFeatureEnabled(item.id)), [isFeatureEnabled]);
 
+    const chatItem = useMemo(() => toolItems
+        .find((item) => item.id === 'chat' && isFeatureEnabled('chat')), [isFeatureEnabled]);
+
     const filteredToolItems = useMemo(() => toolItems
-        .filter((item) => isFeatureEnabled(item.id)), [isFeatureEnabled]);
+        .filter((item) => item.id !== 'chat' && isFeatureEnabled(item.id)), [isFeatureEnabled]);
 
     const toggleAnnouncementCenter = useCallback(() => {
         openAnnouncementCenter({
@@ -204,16 +207,34 @@ function SidebarInner() {
                     </div>
 
                     <nav className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-white/10 px-2">
-                        <div className="sticky top-0 z-30 bg-[#f7f6f3] dark:bg-[#181715] px-3 pt-3 pb-1.5 text-[11px] font-semibold text-[#37352f]/50 dark:text-[#f5f3ee]/45 uppercase tracking-wider">
-                            AI
-                        </div>
+                        {chatItem && (
+                            <div>
+                                <div className="sticky top-0 z-30 bg-[#f7f6f3] dark:bg-[#181715] px-3 pt-3 pb-1.5 text-[11px] font-semibold text-[#37352f]/50 dark:text-[#f5f3ee]/45 uppercase tracking-wider">
+                                    AI
+                                </div>
+                                <ul className="space-y-0.5">
+                                    <li>
+                                        <Link
+                                            href={chatItem.href}
+                                            className={`flex items-center px-3 gap-2 py-1.5 rounded-md transition-colors duration-150 ${pathname === chatItem.href && !activeConvId ? 'bg-[#e3e1db] dark:bg-white/8 text-[#37352f] dark:text-[#f5f3ee]' : 'text-[#37352f] dark:text-[#f5f3ee] hover:bg-[#efedea] dark:hover:bg-white/6'}`}
+                                            onClick={(event) => {
+                                                event.preventDefault();
+                                                handleNewChat().then(() => router.push('/chat'));
+                                            }}
+                                        >
+                                            <chatItem.icon className="w-4.5 h-4.5 flex-shrink-0 text-[#37352f]/70 dark:text-[#f5f3ee]/70" />
+                                            <span className="text-sm font-medium whitespace-nowrap">{chatItem.label}</span>
+                                        </Link>
+                                        {user ? <SidebarConversations /> : null}
+                                    </li>
+                                </ul>
+                            </div>
+                        )}
 
+                        {filteredToolItems.length > 0 && <div className="sticky top-0 z-20 bg-[#f7f6f3] dark:bg-[#181715] px-3 pt-3 pb-1.5 text-[11px] font-semibold text-[#37352f]/50 dark:text-[#f5f3ee]/45 uppercase tracking-wider">工具</div>}
                         <ul className="space-y-0.5">
                             {filteredToolItems.map((item) => {
-                                const isChatItem = item.id === 'chat';
-                                const isActive = isChatItem
-                                    ? pathname === item.href && !activeConvId
-                                    : pathname === item.href;
+                                const isActive = pathname === item.href;
                                 const Icon = item.icon;
 
                                 return (
@@ -228,24 +249,12 @@ function SidebarInner() {
                                                     : 'text-[#37352f] dark:text-[#f5f3ee] hover:bg-[#efedea] dark:hover:bg-white/6'
                                                 }
                                             `}
-                                            onClick={(event) => {
-                                                if (isChatItem) {
-                                                    event.preventDefault();
-                                                    handleNewChat().then(() => {
-                                                        router.push('/chat');
-                                                    });
-                                                }
-                                            }}
                                         >
                                             <Icon className={`w-4.5 h-4.5 flex-shrink-0 ${isActive ? 'text-[#37352f] dark:text-[#f5f3ee]' : 'text-[#37352f]/70 dark:text-[#f5f3ee]/70'}`} />
                                             <span className="text-sm font-medium whitespace-nowrap">
                                                 {item.label}
                                             </span>
                                         </Link>
-
-                                        {isChatItem && user ? (
-                                            <SidebarConversations />
-                                        ) : null}
                                     </li>
                                 );
                             })}

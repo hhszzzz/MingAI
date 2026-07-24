@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { NextRequest } from 'next/server';
+import { mockAIFeatureState } from './helpers/route-mock';
 
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost';
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon';
@@ -36,6 +37,7 @@ function mockBaziUserContext(
 }
 
 test('bazi analysis route builds prompt from server chart context instead of client chartSummary', async (t) => {
+  mockAIFeatureState(t);
     const creditsModule = require('../lib/user/credits') as any;
     const aiAccessModule = require('../lib/ai/ai-access') as any;
     const aiModule = require('../lib/ai/ai') as any;
@@ -265,6 +267,7 @@ test('bazi analysis route builds prompt from server chart context instead of cli
 });
 
 test('bazi analysis route surfaces SSE error when stream persistence returns null after content generation', async (t) => {
+  mockAIFeatureState(t);
     const creditsModule = require('../lib/user/credits') as any;
     const aiAccessModule = require('../lib/ai/ai-access') as any;
     const aiModule = require('../lib/ai/ai') as any;

@@ -88,6 +88,10 @@ mustNotExist('src/app/admin/features/page.tsx', 'legacy admin features shell sho
 mustNotExist('src/app/admin/ai-services/page.tsx', 'legacy admin AI services shell should stay removed after settings-center convergence');
 mustNotExist('src/app/admin/mcp/page.tsx', 'legacy admin MCP shell should stay removed after settings-center convergence');
 mustNotExist('src/components/settings/SettingsRouteLauncher.tsx', 'legacy settings route launcher should stay removed after settings-center convergence');
+mustNotExist('src/components/admin/McpKeyManagementPanel.tsx', 'authenticated MCP key management should stay removed for the public MCP service');
+mustNotExist('src/app/api/admin/mcp-keys/route.ts', 'authenticated MCP admin key route should stay removed for the public MCP service');
+mustNotExist('src/app/api/user/mcp-key/route.ts', 'authenticated MCP user key route should stay removed for the public MCP service');
+mustNotExist('src/lib/mcp-keys.ts', 'authenticated MCP key storage helper should stay removed for the public MCP service');
 
 for (const file of [
   'src/app/api/activation-keys/route.ts',
@@ -99,6 +103,8 @@ for (const file of [
   'src/app/api/daliuren/route.ts',
   'src/app/api/palm/route.ts',
   'src/app/api/face/route.ts',
+  'src/app/api/meihua/route.ts',
+  'src/app/api/xiaoliuren/route.ts',
 ]) {
   mustNotMatch(
     file,
@@ -116,6 +122,8 @@ for (const file of [
   'src/app/api/daliuren/route.ts',
   'src/app/api/palm/route.ts',
   'src/app/api/face/route.ts',
+  'src/app/api/meihua/route.ts',
+  'src/app/api/xiaoliuren/route.ts',
 ]) {
   mustMatch(
     file,
@@ -123,6 +131,60 @@ for (const file of [
     'browser-driven divination routes should opt into cookie-compatible userContext auth',
   );
 }
+
+const meihuaXiaoliurenMigration = 'supabase/migrations/20260723_100000_create_meihua_xiaoliuren_web.sql';
+mustExist(meihuaXiaoliurenMigration, 'web divination tables require a deployable migration');
+mustMatch(
+  meihuaXiaoliurenMigration,
+  /CREATE TABLE public\.meihua_divinations[\s\S]*CREATE TABLE public\.xiaoliuren_divinations/u,
+  'the web divination migration should create both owner-scoped history tables',
+);
+mustMatch(
+  meihuaXiaoliurenMigration,
+  /SECURITY DEFINER[\s\S]*SET search_path = pg_catalog, public/u,
+  'security-definer history RPCs should pin their search path',
+);
+mustMatch(
+  meihuaXiaoliurenMigration,
+  /REVOKE ALL ON FUNCTION public\.create_analysis_conversation_with_history_as_service\([\s\S]*FROM public, anon, authenticated, service_role;[\s\S]*GRANT EXECUTE ON FUNCTION public\.create_analysis_conversation_with_history_as_service\([\s\S]*TO authenticated;/u,
+  'the history binding RPC should deny default execution and expose only the authenticated admin-session entrypoint',
+);
+
+for (const page of ['src/app/meihua/page.tsx', 'src/app/xiaoliuren/page.tsx']) {
+  mustMatch(
+    page,
+    /<HistoryDrawer type="(?:meihua|xiaoliuren)"/u,
+    `${page} should reuse the shared history drawer`,
+  );
+  mustNotMatch(
+    page,
+    /router\.push\('\/(?:meihua|xiaoliuren)\/history'\)/u,
+    `${page} should not add a second history entry beside the shared drawer`,
+  );
+  mustMatch(
+    page,
+    /import \{ toDateTimeLocalValue \} from '@\/lib\/date-utils';/u,
+    `${page} should reuse the shared local datetime formatter`,
+  );
+}
+
+const mcpStorageCleanupMigration = 'supabase/migrations/20260723_110000_drop_mcp_auth_storage.sql';
+mustExist(mcpStorageCleanupMigration, 'public MCP rollout requires a tracked legacy storage cleanup migration');
+mustMatch(
+  mcpStorageCleanupMigration,
+  /cron\.unschedule[\s\S]*DROP FUNCTION IF EXISTS public\.cleanup_mcp_oauth_data\(\);/u,
+  'legacy MCP cleanup should remove its scheduled job and cleanup function',
+);
+mustMatch(
+  mcpStorageCleanupMigration,
+  /DROP TABLE IF EXISTS public\.mcp_oauth_codes;[\s\S]*DROP TABLE IF EXISTS public\.mcp_api_keys;/u,
+  'legacy MCP cleanup should remove OAuth and API-key tables explicitly',
+);
+mustNotMatch(
+  mcpStorageCleanupMigration,
+  /DROP\s+(?:TABLE|FUNCTION|TRIGGER)[^;]*\bCASCADE\b/iu,
+  'legacy MCP cleanup must stop on unexpected dependencies instead of cascading',
+);
 
 mustNotMatch(
   'src/app/api/mbti/route.ts',
@@ -147,7 +209,6 @@ for (const file of [
   'src/components/admin/FeatureTogglePanel.tsx',
   'src/components/admin/KeyManagementPanel.tsx',
   'src/components/admin/AIModelPanel.tsx',
-  'src/components/admin/McpKeyManagementPanel.tsx',
   'src/components/admin/AnnouncementManagementPanel.tsx',
   'src/components/admin/AIGatewayPanel.tsx',
 ]) {

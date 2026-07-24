@@ -99,7 +99,7 @@ CREATE TABLE public.app_settings (
 CREATE TABLE public.archived_sources (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
-  source_type text NOT NULL CHECK (source_type = ANY (ARRAY['conversation'::text, 'record'::text, 'chat_message'::text, 'bazi_chart'::text, 'ziwei_chart'::text, 'tarot_reading'::text, 'liuyao_divination'::text, 'hepan_chart'::text, 'face_reading'::text, 'palm_reading'::text, 'mbti_reading'::text, 'ming_record'::text, 'daily_fortune'::text, 'monthly_fortune'::text, 'qimen_chart'::text, 'daliuren_divination'::text])),
+  source_type text NOT NULL CHECK (source_type = ANY (ARRAY['conversation'::text, 'record'::text, 'chat_message'::text, 'bazi_chart'::text, 'ziwei_chart'::text, 'tarot_reading'::text, 'liuyao_divination'::text, 'hepan_chart'::text, 'face_reading'::text, 'palm_reading'::text, 'mbti_reading'::text, 'ming_record'::text, 'daily_fortune'::text, 'monthly_fortune'::text, 'qimen_chart'::text, 'daliuren_divination'::text, 'meihua_divination'::text, 'xiaoliuren_divination'::text])),
   source_id text NOT NULL,
   kb_id uuid NOT NULL,
   created_at timestamp with time zone DEFAULT now(),
@@ -233,7 +233,7 @@ CREATE TABLE public.conversations (
   messages jsonb DEFAULT '[]'::jsonb,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
-  source_type text DEFAULT 'chat'::text CHECK (source_type = ANY (ARRAY['chat'::text, 'bazi_wuxing'::text, 'bazi_personality'::text, 'tarot'::text, 'liuyao'::text, 'mbti'::text, 'hepan'::text, 'palm'::text, 'face'::text, 'dream'::text, 'qimen'::text, 'daliuren'::text])) NOT VALI),
+  source_type text DEFAULT 'chat'::text CHECK (source_type = ANY (ARRAY['chat'::text, 'bazi_wuxing'::text, 'bazi_personality'::text, 'tarot'::text, 'liuyao'::text, 'mbti'::text, 'hepan'::text, 'palm'::text, 'face'::text, 'dream'::text, 'qimen'::text, 'daliuren'::text, 'meihua'::text, 'xiaoliuren'::text, 'ziwei'::text])) NOT VALID,
   source_data jsonb,
   CONSTRAINT conversations_pkey PRIMARY KEY (id),
   CONSTRAINT conversations_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
@@ -362,63 +362,21 @@ CREATE TABLE public.mbti_readings (
   CONSTRAINT mbti_readings_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
   CONSTRAINT mbti_readings_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES public.conversations(id)
 );
-CREATE TABLE public.mcp_api_keys (
+CREATE TABLE public.meihua_divinations (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL UNIQUE,
-  key_code text NOT NULL UNIQUE,
-  is_active boolean NOT NULL DEFAULT true,
+  user_id uuid NOT NULL,
+  question text NOT NULL CHECK (length(btrim(question)) > 0),
+  method text NOT NULL CHECK (method = ANY (ARRAY['time'::text, 'text_split'::text, 'number_pair'::text, 'number_triplet'::text])),
+  cast_datetime timestamp without time zone NOT NULL,
+  main_hexagram text NOT NULL,
+  changed_hexagram text,
+  input_data jsonb NOT NULL,
+  result_data jsonb NOT NULL,
+  conversation_id uuid,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
-  last_used_at timestamp with time zone,
-  reset_count integer NOT NULL DEFAULT 0,
-  is_banned boolean NOT NULL DEFAULT false,
-  CONSTRAINT mcp_api_keys_pkey PRIMARY KEY (id),
-  CONSTRAINT mcp_api_keys_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
-);
-CREATE TABLE public.mcp_oauth_clients (
-  client_id text NOT NULL,
-  client_secret text,
-  client_secret_expires_at bigint,
-  client_id_issued_at bigint NOT NULL DEFAULT EXTRACT(epoch FROM now()),
-  redirect_uris ARRAY NOT NULL,
-  grant_types ARRAY DEFAULT '{authorization_code,refresh_token}'::text[],
-  response_types ARRAY DEFAULT '{code}'::text[],
-  token_endpoint_auth_method text DEFAULT 'none'::text,
-  client_name text,
-  client_uri text,
-  logo_uri text,
-  scope text,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT mcp_oauth_clients_pkey PRIMARY KEY (client_id)
-);
-CREATE TABLE public.mcp_oauth_codes (
-  code text NOT NULL,
-  client_id text NOT NULL,
-  user_id uuid NOT NULL,
-  redirect_uri text NOT NULL,
-  code_challenge text NOT NULL,
-  code_challenge_method text NOT NULL DEFAULT 'S256'::text,
-  scope text,
-  resource text,
-  expires_at timestamp with time zone NOT NULL,
-  used boolean DEFAULT false,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT mcp_oauth_codes_pkey PRIMARY KEY (code),
-  CONSTRAINT mcp_oauth_codes_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.mcp_oauth_clients(client_id),
-  CONSTRAINT mcp_oauth_codes_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
-);
-CREATE TABLE public.mcp_oauth_tokens (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  refresh_token text NOT NULL UNIQUE,
-  client_id text NOT NULL,
-  user_id uuid NOT NULL,
-  scope text,
-  expires_at timestamp with time zone NOT NULL,
-  revoked boolean DEFAULT false,
-  created_at timestamp with time zone DEFAULT now(),
-  resource text,
-  CONSTRAINT mcp_oauth_tokens_pkey PRIMARY KEY (id),
-  CONSTRAINT mcp_oauth_tokens_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.mcp_oauth_clients(client_id),
-  CONSTRAINT mcp_oauth_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+  CONSTRAINT meihua_divinations_pkey PRIMARY KEY (id),
+  CONSTRAINT meihua_divinations_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE,
+  CONSTRAINT meihua_divinations_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES public.conversations(id) ON DELETE SET NULL
 );
 CREATE TABLE public.ming_notes (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -584,6 +542,24 @@ CREATE TABLE public.users (
   is_admin boolean DEFAULT false,
   CONSTRAINT users_pkey PRIMARY KEY (id),
   CONSTRAINT users_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.xiaoliuren_divinations (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  question text,
+  solar_datetime timestamp without time zone NOT NULL,
+  lunar_month smallint NOT NULL CHECK (lunar_month >= 1 AND lunar_month <= 12),
+  lunar_day smallint NOT NULL CHECK (lunar_day >= 1 AND lunar_day <= 30),
+  is_leap_month boolean NOT NULL DEFAULT false,
+  shichen text NOT NULL,
+  final_status text NOT NULL CHECK (final_status = ANY (ARRAY['大安'::text, '留连'::text, '速喜'::text, '赤口'::text, '小吉'::text, '空亡'::text])),
+  input_data jsonb NOT NULL,
+  result_data jsonb NOT NULL,
+  conversation_id uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT xiaoliuren_divinations_pkey PRIMARY KEY (id),
+  CONSTRAINT xiaoliuren_divinations_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE,
+  CONSTRAINT xiaoliuren_divinations_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES public.conversations(id) ON DELETE SET NULL
 );
 CREATE TABLE public.ziwei_charts (
   id uuid NOT NULL DEFAULT gen_random_uuid(),

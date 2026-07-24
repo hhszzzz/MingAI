@@ -61,6 +61,7 @@ export const DEFAULT_CONVERSATION_TITLE = '新对话';
 const AI_PERSONALITY_VALUES: ReadonlySet<string> = new Set<AIPersonality>([
     'bazi', 'ziwei', 'dream', 'mangpai', 'tarot', 'liuyao',
     'mbti', 'hepan', 'qimen', 'daliuren', 'general',
+    'meihua', 'xiaoliuren',
 ]);
 
 const normalizePersonality = (value?: string | null): AIPersonality => {

@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import { BookOpenText, Bot, KeyRound, Megaphone, Scroll, Wallet, Wrench } from 'lucide-react';
+import { BookOpenText, Bot, KeyRound, Megaphone, Scroll, Wallet } from 'lucide-react';
 import {
   CurrencyCircleDollarIcon,
   GearSixIcon,
@@ -57,7 +57,6 @@ export const SETTINGS_CENTER_TAB_ICONS: Record<SettingsCenterTab, ComponentType<
   'admin-announcements': Megaphone,
   'admin-features': Wallet,
   'admin-ai-services': Bot,
-  'admin-mcp': Wrench,
 };
 
 export function getSettingsCenterTabIcon(tab: SettingsCenterTab) {

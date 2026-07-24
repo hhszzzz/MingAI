@@ -27,9 +27,6 @@ const LazyAIModelPanel = lazy(async () => ({
 const LazyAIGatewayPanel = lazy(async () => ({
   default: (await import('@/components/admin/AIGatewayPanel')).AIGatewayPanel,
 }));
-const LazyMcpKeyManagementPanel = lazy(async () => ({
-  default: (await import('@/components/admin/McpKeyManagementPanel')).McpKeyManagementPanel,
-}));
 
 function PanelFallback() {
   return (
@@ -172,18 +169,6 @@ export function AdminAIServicesContent() {
         <div className="rounded-lg border border-border bg-background p-4">
           {activeTab === 'models' && <LazyAIModelPanel />}
           {activeTab === 'gateways' && <LazyAIGatewayPanel />}
-        </div>
-      </Suspense>
-    </Section>
-  );
-}
-
-export function AdminMcpContent() {
-  return (
-    <Section title="MCP 管理" description="查看、封禁和恢复用户 MCP Key。">
-      <Suspense fallback={<PanelFallback />}>
-        <div className="rounded-lg border border-border bg-background p-4">
-          <LazyMcpKeyManagementPanel />
         </div>
       </Suspense>
     </Section>

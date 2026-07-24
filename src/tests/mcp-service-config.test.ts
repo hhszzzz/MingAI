@@ -2,11 +2,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  MCP_OAUTH_URL,
+  MCP_PUBLIC_URL,
   MCP_PUBLIC_TOOLS,
   MCP_STDIO_GLOBAL_COMMAND,
   MCP_STDIO_PACKAGE_NAME,
-  buildMcpOAuthConfig,
+  buildMcpPublicHttpConfig,
   buildMcpStdioGlobalConfig,
   buildMcpStdioNpxConfig,
 } from '../lib/mcp-service-config';
@@ -36,16 +36,16 @@ test('stdio config snippets match the documented local MCP usage', () => {
   });
 });
 
-test('oauth config snippet keeps the remote streamable-http entry', () => {
-  const oauthConfig = JSON.parse(buildMcpOAuthConfig()) as {
+test('public config snippet keeps the anonymous remote streamable-http entry', () => {
+  const publicConfig = JSON.parse(buildMcpPublicHttpConfig()) as {
     mcpServers: { taibu: { type: string; url: string } };
   };
 
-  assert.deepEqual(oauthConfig, {
+  assert.deepEqual(publicConfig, {
     mcpServers: {
       taibu: {
         type: 'streamable-http',
-        url: MCP_OAUTH_URL,
+        url: MCP_PUBLIC_URL,
       },
     },
   });

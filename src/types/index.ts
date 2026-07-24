@@ -75,7 +75,7 @@ export interface BaziFormData {
 // ===== AI 对话相关类型 =====
 
 /** AI 人格类型 */
-export type AIPersonality = 'bazi' | 'ziwei' | 'dream' | 'mangpai' | 'tarot' | 'liuyao' | 'mbti' | 'hepan' | 'qimen' | 'daliuren' | 'general';
+export type AIPersonality = 'bazi' | 'ziwei' | 'dream' | 'mangpai' | 'tarot' | 'liuyao' | 'mbti' | 'hepan' | 'qimen' | 'daliuren' | 'meihua' | 'xiaoliuren' | 'general';
 
 /** AI 人格配置 */
 export interface AIPersonalityConfig {

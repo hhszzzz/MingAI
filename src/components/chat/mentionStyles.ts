@@ -15,6 +15,8 @@ export const mentionStyleMap: Record<MentionType | 'default', { className: strin
     monthly_fortune: { className: 'text-lime-600' },
     qimen_chart: { className: 'text-indigo-500' },
     daliuren_divination: { className: 'text-cyan-500' },
+    meihua_divination: { className: 'text-pink-500' },
+    xiaoliuren_divination: { className: 'text-emerald-500' },
     default: { className: 'text-foreground' }
 };
 
@@ -33,6 +35,7 @@ export const mentionTypeLabels: Record<MentionType | 'default', string> = {
     monthly_fortune: '每月运势',
     qimen_chart: '奇门遁甲',
     daliuren_divination: '大六壬',
+    meihua_divination: '梅花易数',
+    xiaoliuren_divination: '小六壬',
     default: '数据'
 };
-

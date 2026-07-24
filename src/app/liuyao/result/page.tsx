@@ -43,6 +43,7 @@ import { LIU_QIN_TIPS, SHEN_XI_TIPS, TERM_TIPS } from '@/lib/divination/liuyao-t
 import { useAdminJsonCopy } from '@/lib/admin/useAdminJsonCopy';
 import { runSharedAnalysisFlow } from '@/lib/ai/analysis-runner';
 import { CopyTextModal } from '@/components/divination/CopyTextModal';
+import { AIFeatureGate } from '@/components/ai/AIFeatureGate';
 import type { ChartTextDetailLevel } from '@/lib/divination/detail-level';
 
 type LiuyaoResultSession = Omit<DivinationResult, 'createdAt'> & {
@@ -290,7 +291,7 @@ export default function ResultPage() {
                 )}
 
                 {/* AI 解读 */}
-                <div className="bg-background border border-border rounded-md p-6 space-y-6">
+                <AIFeatureGate><div className="bg-background border border-border rounded-md p-6 space-y-6">
                     <div className="flex items-center justify-between border-b border-border/60 pb-4">
                         <h2 className="text-sm font-bold flex items-center gap-2 uppercase tracking-wider text-foreground/60"><Sparkles className="w-4 h-4 text-[#a083ff]" />AI 深度解读</h2>
                         <div className="flex items-center gap-2">
@@ -318,7 +319,7 @@ export default function ResultPage() {
                             )}
                         </div>
                     )}
-                </div>
+                </div></AIFeatureGate>
             </div>
 
             {/* 术语弹窗 */}

@@ -342,6 +342,8 @@ export const SOURCE_CHART_TYPE_MAP: Record<DataSourceType, readonly ChartType[]>
     palm_reading:        ['physiognomy_annotation'],
     qimen_chart:         ['divination_verdict'],
     daliuren_divination: ['divination_verdict'],
+    meihua_divination:   ['divination_verdict'],
+    xiaoliuren_divination: ['divination_verdict'],
     daily_fortune:       ['fortune_calendar', 'yearly_sparklines'],
     monthly_fortune:     ['fortune_calendar', 'yearly_sparklines'],
     ming_record:         [],

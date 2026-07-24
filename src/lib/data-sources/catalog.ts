@@ -22,6 +22,8 @@ const DATA_SOURCE_CATALOG: Record<DataSourceType, DataSourceCatalogEntry> = {
     monthly_fortune: { featureId: 'monthly', navId: 'monthly' },
     qimen_chart: { featureId: 'qimen', navId: 'qimen' },
     daliuren_divination: { featureId: 'daliuren', navId: 'daliuren' },
+    meihua_divination: { featureId: 'meihua', navId: 'meihua' },
+    xiaoliuren_divination: { featureId: 'xiaoliuren', navId: 'xiaoliuren' },
 };
 
 export function getDataSourceFeatureId(type: DataSourceType): FeatureModuleId {

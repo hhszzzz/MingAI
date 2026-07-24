@@ -12,7 +12,6 @@ export const SETTINGS_CENTER_TABS = [
   'admin-announcements',
   'admin-features',
   'admin-ai-services',
-  'admin-mcp',
   'help',
 ] as const;
 
@@ -60,7 +59,6 @@ const SETTINGS_CENTER_TAB_META: Record<SettingsCenterTab, Omit<SettingsCenterTab
   'admin-announcements': { id: 'admin-announcements', label: '公告', group: 'management' },
   'admin-features': { id: 'admin-features', label: '功能与激活码', group: 'management' },
   'admin-ai-services': { id: 'admin-ai-services', label: 'AI 服务', group: 'management' },
-  'admin-mcp': { id: 'admin-mcp', label: 'MCP 管理', group: 'management' },
 };
 
 function isSettingsCenterTabDisabled(tab: SettingsCenterTab, flags: SettingsCenterFlags) {
@@ -75,6 +73,8 @@ function isSettingsCenterTabDisabled(tab: SettingsCenterTab, flags: SettingsCent
       return !flags.chartsEnabled;
     case 'knowledge-base':
       return !flags.knowledgeBaseEnabled;
+    case 'mcp-service':
+      return !flags.mcpServiceEnabled;
     case 'help':
       return !flags.helpEnabled;
     default:
@@ -109,6 +109,11 @@ export function getSettingsCenterDisabledState(
       return {
         title: '暂未开放',
         description: '当前知识库不可用。',
+      };
+    case 'mcp-service':
+      return {
+        title: '暂未开放',
+        description: '当前 MCP 服务入口不可用。',
       };
     case 'charts':
       return {

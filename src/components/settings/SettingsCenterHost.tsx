@@ -45,9 +45,6 @@ const LazyAdminFeaturesContent = lazy(async () => ({
 const LazyAdminAIServicesContent = lazy(async () => ({
   default: (await import('@/components/settings/AccountAdminPanels')).AdminAIServicesContent,
 }));
-const LazyAdminMcpContent = lazy(async () => ({
-  default: (await import('@/components/settings/AccountAdminPanels')).AdminMcpContent,
-}));
 
 export type SettingsCenterTabItem = {
   id: SettingsCenterTab;
@@ -181,8 +178,6 @@ function renderSettingsCenterPanel(
       return renderLazyPanel(<LazyAdminFeaturesContent />);
     case 'admin-ai-services':
       return renderLazyPanel(<LazyAdminAIServicesContent />);
-    case 'admin-mcp':
-      return renderLazyPanel(<LazyAdminMcpContent />);
   }
 }
 
@@ -216,7 +211,9 @@ export function SettingsCenterHost() {
       chartsEnabled: !featureTogglesLoaded || isFeatureEnabled('charts'),
       knowledgeBaseEnabled: !featureTogglesLoaded || isFeatureEnabled('knowledge-base'),
       mcpServiceEnabled: !featureTogglesLoaded || isFeatureEnabled('mcp-service'),
-      personalizationEnabled: !featureTogglesLoaded || isFeatureEnabled('ai-personalization'),
+      personalizationEnabled: featureTogglesLoaded
+        && isFeatureEnabled('chat')
+        && isFeatureEnabled('ai-personalization'),
       helpEnabled: !featureTogglesLoaded || isFeatureEnabled('help'),
       isAdmin,
     }),

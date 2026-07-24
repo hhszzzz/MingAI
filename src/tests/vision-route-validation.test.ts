@@ -1,8 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { NextRequest } from 'next/server';
+import { mockAIFeatureState } from './helpers/route-mock';
 
-test('face route rejects unsupported image mime types before auth', async () => {
+test('face route rejects unsupported image mime types before auth', async (t) => {
+    mockAIFeatureState(t);
     const { POST } = await import('../app/api/face/route');
 
     const request = new NextRequest('http://localhost/api/face', {
@@ -22,7 +24,8 @@ test('face route rejects unsupported image mime types before auth', async () => 
     assert.equal(data.error, '图片格式不支持');
 });
 
-test('face route rejects missing image mime types before auth', async () => {
+test('face route rejects missing image mime types before auth', async (t) => {
+    mockAIFeatureState(t);
     const { POST } = await import('../app/api/face/route');
 
     const request = new NextRequest('http://localhost/api/face', {
@@ -42,7 +45,8 @@ test('face route rejects missing image mime types before auth', async () => {
     assert.equal(data.error, '图片格式不支持');
 });
 
-test('palm route rejects unsupported image mime types before auth', async () => {
+test('palm route rejects unsupported image mime types before auth', async (t) => {
+    mockAIFeatureState(t);
     const { POST } = await import('../app/api/palm/route');
 
     const request = new NextRequest('http://localhost/api/palm', {
@@ -62,7 +66,8 @@ test('palm route rejects unsupported image mime types before auth', async () => 
     assert.equal(data.error, '图片格式不支持');
 });
 
-test('palm route rejects missing image mime types before auth', async () => {
+test('palm route rejects missing image mime types before auth', async (t) => {
+    mockAIFeatureState(t);
     const { POST } = await import('../app/api/palm/route');
 
     const request = new NextRequest('http://localhost/api/palm', {

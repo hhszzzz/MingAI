@@ -292,3 +292,52 @@ test('mbti data source formatForAI should match saved analysis structure instead
   assert.ok(text.includes('判断(J) 60% vs 知觉(P) 40%'));
   assert.ok(!text.includes('比例：'));
 });
+
+test('meihua data source formatForAI should reuse the canonical web result text', async () => {
+  const { meihuaProvider } = await import('../lib/data-sources/meihua');
+  const { calculateMeihuaBundle, buildMeihuaCanonicalText } = await import('../lib/divination/meihua');
+  const bundle = calculateMeihuaBundle({
+    question: '数据源梅花',
+    date: '2026-04-04T10:30',
+    method: 'number_pair',
+    numbers: [2, 7],
+  });
+  const row = {
+    id: 'meihua-1',
+    user_id: 'user-1',
+    question: bundle.input.question,
+    method: bundle.input.method,
+    cast_datetime: bundle.input.date,
+    main_hexagram: bundle.result.mainHexagram.name,
+    changed_hexagram: bundle.result.changedHexagram?.name ?? null,
+    input_data: bundle.input,
+    result_data: bundle,
+    conversation_id: null,
+    created_at: '2026-03-25T00:00:00.000Z',
+  };
+
+  assert.equal(meihuaProvider.formatForAI(row as never), buildMeihuaCanonicalText(bundle.result));
+});
+
+test('xiaoliuren data source formatForAI should reuse the canonical web result text', async () => {
+  const { xiaoliurenProvider } = await import('../lib/data-sources/xiaoliuren');
+  const { calculateXiaoliurenBundle, buildXiaoliurenCanonicalText } = await import('../lib/divination/xiaoliuren');
+  const bundle = calculateXiaoliurenBundle({ date: '2026-04-04T10:30', question: '数据源小六壬' });
+  const row = {
+    id: 'xiaoliuren-1',
+    user_id: 'user-1',
+    question: bundle.input.question,
+    solar_datetime: bundle.solarDateTime,
+    lunar_month: bundle.lunarMonth,
+    lunar_day: bundle.lunarDay,
+    is_leap_month: bundle.isLeapMonth,
+    shichen: bundle.result.input.shichen,
+    final_status: bundle.result.hourStatus,
+    input_data: bundle.input,
+    result_data: bundle,
+    conversation_id: null,
+    created_at: '2026-03-25T00:00:00.000Z',
+  };
+
+  assert.equal(xiaoliurenProvider.formatForAI(row as never), buildXiaoliurenCanonicalText(bundle.result));
+});

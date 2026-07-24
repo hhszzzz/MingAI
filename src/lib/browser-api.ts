@@ -72,6 +72,8 @@ function resolveCacheScopesByPath(pathname: string): LocalCacheScope[] {
     || pathname.startsWith('/api/ziwei')
     || pathname.startsWith('/api/qimen')
     || pathname.startsWith('/api/daliuren')
+    || pathname.startsWith('/api/meihua')
+    || pathname.startsWith('/api/xiaoliuren')
   ) {
     return ['data_sources'];
   }
@@ -144,6 +146,8 @@ export function dispatchApiWriteEvents(
     || pathname.startsWith('/api/ziwei')
     || pathname.startsWith('/api/qimen')
     || pathname.startsWith('/api/daliuren')
+    || pathname.startsWith('/api/meihua')
+    || pathname.startsWith('/api/xiaoliuren')
   ) {
     window.dispatchEvent(new CustomEvent(DATA_INDEX_INVALIDATED_EVENT, { detail }));
   }

@@ -9,6 +9,7 @@ import { getElementColor } from '@/lib/divination/display-helpers';
 import { TenGodKnowledge } from '@/components/bazi/TenGodKnowledge';
 import { AIWuxingAnalysis } from '@/components/bazi/result/AIWuxingAnalysis';
 import { AIPersonalityAnalysis } from '@/components/bazi/result/AIPersonalityAnalysis';
+import { AIFeatureGate } from '@/components/ai/AIFeatureGate';
 import type { FiveElement, TenGod } from '@/types';
 
 interface BasicInfoSectionProps {
@@ -98,6 +99,7 @@ export function BasicInfoSection({
             </section>
 
             {/* 2. AI 专业分析区域 */}
+            <AIFeatureGate>
             <div className="space-y-8">
                 {/* 五行分析 */}
                 {!hasKnownBirthTime ? (
@@ -235,6 +237,7 @@ export function BasicInfoSection({
                     />
                 )}
             </div>
+            </AIFeatureGate>
 
             {/* 3. 十神知识库 - 独立区域 */}
             <div className="pt-4">

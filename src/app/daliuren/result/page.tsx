@@ -26,6 +26,7 @@ import { DEFAULT_MODEL_ID } from '@/lib/ai/ai-config';
 import { runSharedAnalysisFlow } from '@/lib/ai/analysis-runner';
 import { useSessionMembership } from '@/lib/hooks/useSessionMembership';
 import { CopyTextModal } from '@/components/divination/CopyTextModal';
+import { AIFeatureGate } from '@/components/ai/AIFeatureGate';
 import type { ChartTextDetailLevel } from '@/lib/divination/detail-level';
 import { saveDivinationAction } from '@/lib/divination/save-client';
 import {
@@ -278,7 +279,7 @@ export default function DaliurenResultPage() {
                 </section>
 
                 {/* AI 解读 */}
-                <div className="bg-background border border-border rounded-md p-6 space-y-6">
+                <AIFeatureGate><div className="bg-background border border-border rounded-md p-6 space-y-6">
                     <div className="flex items-center justify-between border-b border-border/60 pb-4">
                         <h2 className="text-sm font-bold flex items-center gap-2 uppercase tracking-wider text-foreground/60"><Brain className="w-4 h-4 text-[#2eaadc]" />AI 深度解读</h2>
                         <div className="flex items-center gap-2">
@@ -301,7 +302,7 @@ export default function DaliurenResultPage() {
                             {sessionLoading || membershipPending ? <SoundWaveLoader variant="inline" /> : !userId ? <button onClick={() => setShowAuthModal(true)} className="px-8 py-2.5 bg-[#2383e2] text-white text-sm font-bold rounded-md hover:bg-[#2383e2]/90 transition-colors">登录解锁 AI 解读</button> : <button onClick={handleInterpret} disabled={membershipPending} className="px-8 py-2.5 bg-[#2383e2] text-white text-sm font-bold rounded-md hover:bg-[#2383e2]/90 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2 mx-auto"><Sparkles className="w-4 h-4" />获取 AI 解读</button>}
                         </div>
                     )}
-                </div>
+                </div></AIFeatureGate>
             </div>
             <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
             <CreditsModal isOpen={showCreditsModal} onClose={() => setShowCreditsModal(false)} />

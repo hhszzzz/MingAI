@@ -18,6 +18,8 @@ test('data-sources registry resolves known providers', async () => {
         'monthly_fortune',
         'qimen_chart',
         'daliuren_divination',
+        'meihua_divination',
+        'xiaoliuren_divination',
     ];
 
     for (const t of types) {

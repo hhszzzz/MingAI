@@ -60,7 +60,7 @@ export function FeatureTogglePanel() {
     return (
         <div className="space-y-4">
             <p className="text-sm text-foreground-secondary">
-                关闭某个功能后，用户将无法访问对应页面、入口或对应接入方式；其中 MCP OAuth 仅影响远程 OAuth 接入。
+                关闭某个功能后，用户将无法访问对应页面、入口或接入说明。
             </p>
 
             {error && (

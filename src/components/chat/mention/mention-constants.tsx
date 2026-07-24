@@ -4,7 +4,7 @@
 import type { ReactNode } from 'react';
 import {
     ChevronRight, Folder, BookOpenText, BookOpen,
-    Orbit, Sparkles, Gem, Dices, ScanFace, Hand, Brain,
+    Orbit, Sparkles, Gem, Dices, ScanFace, Hand, Brain, Flower2, Waypoints,
     HeartHandshake, Heart, Briefcase, Users,
     Calendar, CalendarDays, FileText, Compass,
 } from 'lucide-react';
@@ -50,6 +50,8 @@ export const TYPE_LABELS: Record<MentionType, string> = {
     monthly_fortune: '月运',
     qimen_chart: '奇门遁甲',
     daliuren_divination: '大六壬',
+    meihua_divination: '梅花易数',
+    xiaoliuren_divination: '小六壬',
 };
 
 const renderDataSourceNavIcon = (type: Exclude<MentionType, 'knowledge_base'>, fallback: ReactNode) => {
@@ -72,6 +74,8 @@ export const TYPE_ICONS: Record<MentionType, ReactNode> = {
     monthly_fortune: renderDataSourceNavIcon('monthly_fortune', <CalendarDays className="w-4 h-4" />),
     qimen_chart: renderDataSourceNavIcon('qimen_chart', <Compass className="w-4 h-4" />),
     daliuren_divination: renderDataSourceNavIcon('daliuren_divination', <BookOpen className="w-4 h-4" />),
+    meihua_divination: renderDataSourceNavIcon('meihua_divination', <Flower2 className="w-4 h-4" />),
+    xiaoliuren_divination: renderDataSourceNavIcon('xiaoliuren_divination', <Waypoints className="w-4 h-4" />),
 };
 
 export const HEPAN_TYPE_LABELS: Record<string, string> = {

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { NextRequest } from 'next/server';
-import { ensureRouteTestEnv } from './helpers/route-mock';
+import { ensureRouteTestEnv, mockAIFeatureState } from './helpers/route-mock';
 
 ensureRouteTestEnv();
 
@@ -33,6 +33,7 @@ function mockLiuyaoUserContext(
 }
 
 test('liuyao route uses divination created_at for analysis date', async (t) => {
+    mockAIFeatureState(t);
     const credits = require('../lib/user/credits') as any;
     const aiAnalysisModule = require('../lib/ai/ai-analysis') as any;
     const supabaseModule = require('../lib/auth') as any;
@@ -185,6 +186,7 @@ test('liuyao route uses divination created_at for analysis date', async (t) => {
 });
 
 test('liuyao route only marks 用神 when position and liuqin both match', async (t) => {
+    mockAIFeatureState(t);
     const credits = require('../lib/user/credits') as any;
     const aiAccessModule = require('../lib/ai/ai-access') as any;
     const supabaseModule = require('../lib/auth') as any;
@@ -341,6 +343,7 @@ test('liuyao route only marks 用神 when position and liuqin both match', async
 });
 
 test('liuyao route persists analysis after streaming completes', async (t) => {
+    mockAIFeatureState(t);
     const credits = require('../lib/user/credits') as any;
     const aiAccessModule = require('../lib/ai/ai-access') as any;
     const aiModule = require('../lib/ai/ai') as any;
@@ -527,6 +530,7 @@ test('liuyao route persists analysis after streaming completes', async (t) => {
 });
 
 test('liuyao route surfaces SSE error when stream persistence fails after content generation', async (t) => {
+    mockAIFeatureState(t);
     const credits = require('../lib/user/credits') as any;
     const aiAccessModule = require('../lib/ai/ai-access') as any;
     const aiModule = require('../lib/ai/ai') as any;
@@ -789,6 +793,7 @@ test('liuyao route save returns 400 when question is not string', async () => {
 });
 
 test('liuyao route interpret returns 400 when question is provided but yongShenTargets is missing', async (t) => {
+    mockAIFeatureState(t);
     const supabaseModule = require('../lib/auth') as any;
     const originalGetUser = supabaseModule.supabase.auth.getUser;
 
@@ -840,6 +845,7 @@ test('liuyao route interpret returns 400 when question is provided but yongShenT
 });
 
 test('liuyao route interpret enforces targets when persisted question exists but request question is empty', async (t) => {
+    mockAIFeatureState(t);
     const credits = require('../lib/user/credits') as any;
     const supabaseModule = require('../lib/auth') as any;
     const supabaseServerModule = require('../lib/supabase-server') as any;
@@ -992,6 +998,7 @@ test('liuyao route save allows missing yongShenTargets when question is empty', 
 });
 
 test('liuyao route rejects interpret when question is empty and persisted question is missing', async (t) => {
+    mockAIFeatureState(t);
     const credits = require('../lib/user/credits') as any;
     const aiModule = require('../lib/ai/ai') as any;
     const aiAnalysisModule = require('../lib/ai/ai-analysis') as any;

@@ -13,6 +13,7 @@ import { ConflictPoints } from '@/components/hepan/ConflictPoints';
 import { CompatibilityTrendChart, type CompatibilityTrendPoint } from '@/components/hepan/CompatibilityTrendChart';
 import { MarkdownContent } from '@/components/ui/MarkdownContent';
 import { ModelSelector } from '@/components/ui/ModelSelector';
+import { AIFeatureGate } from '@/components/ai/AIFeatureGate';
 import { ThinkingBlock } from '@/components/chat/ThinkingBlock';
 import {
     type HepanResult,
@@ -299,7 +300,7 @@ export default function HepanResultPage() {
                 </div>
 
                 {/* AI 深度分析 */}
-                <div className="bg-background/5 backdrop-blur-xl rounded-3xl p-6 md:p-8 border border-white/10 relative mb-12 group">
+                <AIFeatureGate><div className="bg-background/5 backdrop-blur-xl rounded-3xl p-6 md:p-8 border border-white/10 relative mb-12 group">
                     {/* Background decorations Removed */}
 
                     <div className="flex items-center justify-between mb-6 flex-wrap gap-4 relative z-10">
@@ -402,7 +403,7 @@ export default function HepanResultPage() {
                             )}
                         </div>
                     )}
-                </div>
+                </div></AIFeatureGate>
 
                 {/* 操作按钮 */}
                 <div className="flex justify-center pb-8">

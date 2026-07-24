@@ -75,6 +75,7 @@ export function MobileChatDrawer() {
             chat: [], dream: [], bazi_wuxing: [], bazi_personality: [],
             tarot: [], liuyao: [], ziwei: [], mbti: [], hepan: [],
             palm: [], face: [], qimen: [], daliuren: [],
+            meihua: [], xiaoliuren: [],
         };
 
         filtered.forEach(conv => {

@@ -14,6 +14,8 @@ export const DATA_SOURCE_TYPES = [
     'monthly_fortune',
     'qimen_chart',
     'daliuren_divination',
+    'meihua_divination',
+    'xiaoliuren_divination',
 ] as const;
 
 export type DataSourceType = typeof DATA_SOURCE_TYPES[number];

@@ -1,11 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { NextRequest } from 'next/server';
+import { mockAIFeatureState } from './helpers/route-mock';
 
 process.env.NEXT_PUBLIC_SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost';
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'test-anon';
 
 test('/api/models should only expose chat and vision models', async (t) => {
+  mockAIFeatureState(t);
   const aiConfigServerModule = require('../lib/server/ai-config') as any;
   const membershipModule = require('../lib/user/membership-server') as any;
   const aiAccessModule = require('../lib/ai/ai-access') as any;
@@ -89,6 +91,7 @@ test('/api/models should only expose chat and vision models', async (t) => {
 });
 
 test('/api/models?catalog=byok should expose chat models without membership filtering', async (t) => {
+  mockAIFeatureState(t);
   const aiConfigServerModule = require('../lib/server/ai-config') as any;
   const membershipModule = require('../lib/user/membership-server') as any;
   const aiAccessModule = require('../lib/ai/ai-access') as any;

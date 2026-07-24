@@ -27,6 +27,9 @@ import {
 const ALL_NAV_ITEMS = getMobileItemsRecord();
 
 function isMergedMembershipNavEnabled(id: string, isFeatureEnabled: (featureId: string) => boolean) {
+    if (id === 'settings-personalization') {
+        return isFeatureEnabled('chat') && isFeatureEnabled('ai-personalization');
+    }
     return isFeatureEnabled(toFeatureId(id));
 }
 

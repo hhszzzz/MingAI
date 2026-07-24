@@ -156,6 +156,8 @@ const MENTION_PERSONALITY_MAP: Partial<Record<string, AIPersonality>> = {
     hepan_chart: 'hepan',
     qimen_chart: 'qimen',
     daliuren_divination: 'daliuren',
+    meihua_divination: 'meihua',
+    xiaoliuren_divination: 'xiaoliuren',
 };
 
 export function resolvePersonalities(context: {

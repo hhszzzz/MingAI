@@ -18,4 +18,6 @@ export const DATA_SOURCE_LOADERS: Record<DataSourceType, DataSourceLoader> = {
     monthly_fortune: async () => (await import('@/lib/data-sources/fortune')).monthlyFortuneProvider,
     qimen_chart: async () => (await import('@/lib/data-sources/qimen')).qimenProvider,
     daliuren_divination: async () => (await import('@/lib/data-sources/daliuren')).daliurenProvider,
+    meihua_divination: async () => (await import('@/lib/data-sources/meihua')).meihuaProvider,
+    xiaoliuren_divination: async () => (await import('@/lib/data-sources/xiaoliuren')).xiaoliurenProvider,
 };

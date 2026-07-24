@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { NextRequest } from 'next/server';
-import { captureConsoleErrors, ensureRouteTestEnv } from './helpers/route-mock';
+import { captureConsoleErrors, ensureRouteTestEnv, mockAIFeatureState } from './helpers/route-mock';
 import { createMockUIMessageResult } from './helpers/ui-message-result';
 
 ensureRouteTestEnv();
@@ -43,6 +43,7 @@ function mockTarotUserContext(
 }
 
 test('tarot route uses schema column names when inserting history', async (t) => {
+  mockAIFeatureState(t);
     const credits = require('../lib/user/credits') as any;
     const aiAccessModule = require('../lib/ai/ai-access') as any;
     const aiModule = require('../lib/ai/ai') as any;
@@ -144,6 +145,7 @@ test('tarot route uses schema column names when inserting history', async (t) =>
 });
 
 test('tarot route persists analysis after streaming completes', async (t) => {
+  mockAIFeatureState(t);
     const credits = require('../lib/user/credits') as any;
     const aiAccessModule = require('../lib/ai/ai-access') as any;
     const aiModule = require('../lib/ai/ai') as any;
@@ -235,6 +237,7 @@ test('tarot route persists analysis after streaming completes', async (t) => {
 });
 
 test('tarot route surfaces SSE error when stream persistence fails after content generation', async (t) => {
+  mockAIFeatureState(t);
     const credits = require('../lib/user/credits') as any;
     const aiAccessModule = require('../lib/ai/ai-access') as any;
     const aiModule = require('../lib/ai/ai') as any;

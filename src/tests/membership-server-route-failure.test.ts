@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { NextRequest } from 'next/server';
+import { mockAIFeatureState } from './helpers/route-mock';
 
 process.env.NEXT_PUBLIC_SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost';
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'test-anon';
@@ -44,6 +45,7 @@ test('getEffectiveMembershipType should throw explicit error when user row looku
 });
 
 test('/api/models should surface membership resolution failures instead of downgrading to free', async (t) => {
+  mockAIFeatureState(t);
   const aiConfigServerModule = require('../lib/server/ai-config') as any;
   const membershipModule = require('../lib/user/membership-server') as any;
   const apiUtilsModule = require('../lib/api-utils') as any;
@@ -79,6 +81,7 @@ test('/api/models should surface membership resolution failures instead of downg
 });
 
 test('/api/models?catalog=byok should bypass membership failures entirely', async (t) => {
+  mockAIFeatureState(t);
   const aiConfigServerModule = require('../lib/server/ai-config') as any;
   const membershipModule = require('../lib/user/membership-server') as any;
   const apiUtilsModule = require('../lib/api-utils') as any;

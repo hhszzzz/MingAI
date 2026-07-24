@@ -29,7 +29,6 @@ function resolveInvalidationKeys(pathname: string): ReadonlyArray<readonly unkno
     || pathname.startsWith('/api/checkin')
     || pathname.startsWith('/api/activation-keys')
     || pathname.startsWith('/api/auth')
-    || pathname.startsWith('/api/user/mcp-key')
   ) {
     return [
       queryKeys.appBootstrapPrefix(),

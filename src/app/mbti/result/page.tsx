@@ -19,6 +19,7 @@ import { useSessionMembership } from '@/lib/hooks/useSessionMembership';
 import { ThinkingBlock } from '@/components/chat/ThinkingBlock';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { AddToKnowledgeBaseModal } from '@/components/knowledge-base/AddToKnowledgeBaseModal';
+import { AIFeatureGate } from '@/components/ai/AIFeatureGate';
 import { useKnowledgeBaseFeatureEnabled } from '@/components/knowledge-base/useKnowledgeBaseFeatureEnabled';
 import { readSessionJSON } from '@/lib/cache/session-storage';
 import { useHeaderMenu } from '@/components/layout/HeaderMenuContext';
@@ -148,7 +149,7 @@ function MBTIResultContent() {
                 <PersonalityCard result={result} showDimensions={!!isTestMode} />
 
                 {/* AI 深度分析 */}
-                {isTestMode && (
+                {isTestMode && (<AIFeatureGate>
                     <div className="bg-background border border-border rounded-md p-6 space-y-6">
                         <div className="flex items-center justify-between border-b border-border/60 pb-4">
                             <h3 className="text-sm font-bold flex items-center gap-2 uppercase tracking-wider text-foreground/60"><Sparkles className="w-4 h-4 text-[#2eaadc]" />AI 深度分析</h3>
@@ -178,7 +179,7 @@ function MBTIResultContent() {
                             </div>
                         )}
                     </div>
-                )}
+                </AIFeatureGate>)}
 
                 {/* 底部收藏操作 */}
                 {knowledgeBaseEnabled && !!readingId && (

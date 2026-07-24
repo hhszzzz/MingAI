@@ -16,6 +16,7 @@ import { writeSessionJSON } from '@/lib/cache/session-storage';
 import { DEFAULT_VISION_MODEL_ID } from '@/lib/ai/ai-config';
 import { VisionModelSelector } from '@/components/ui/VisionModelSelector';
 import { useSessionSafe } from '@/components/providers/ClientProviders';
+import { AIFeatureGate } from '@/components/ai/AIFeatureGate';
 import dynamic from 'next/dynamic';
 
 const HistoryDrawer = dynamic(
@@ -167,7 +168,7 @@ export default function FacePage() {
     };
 
     return (
-        <>
+        <AIFeatureGate><>
             <div className="min-h-screen bg-background md:pb-12">
                 {/* 顶部 Hero 区域 - 移动端隐藏 */}
                 <div className="hidden md:block relative overflow-hidden bg-background-secondary/30 border-b border-border/50">
@@ -402,6 +403,6 @@ export default function FacePage() {
                 isOpen={showCreditsModal}
                 onClose={() => setShowCreditsModal(false)}
             />
-        </>
+        </></AIFeatureGate>
     );
 }

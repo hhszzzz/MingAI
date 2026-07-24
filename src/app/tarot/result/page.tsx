@@ -27,6 +27,7 @@ import { CreditsModal } from '@/components/ui/CreditsModal';
 import { useStreamingResponse, isCreditsError } from '@/lib/hooks/useStreamingResponse';
 import { useAnalysisSnapshot } from '@/lib/hooks/useAnalysisSnapshot';
 import { CopyTextModal } from '@/components/divination/CopyTextModal';
+import { AIFeatureGate } from '@/components/ai/AIFeatureGate';
 import type { ChartTextDetailLevel } from '@/lib/divination/detail-level';
 import { runSharedAnalysisFlow } from '@/lib/ai/analysis-runner';
 
@@ -317,7 +318,7 @@ function TarotResultContent() {
                 </div>
 
                 {/* AI 解读 */}
-                <div className="bg-background border border-border rounded-md p-6 space-y-6">
+                <AIFeatureGate><div className="bg-background border border-border rounded-md p-6 space-y-6">
                     <div className="flex items-center justify-between border-b border-border/60 pb-4">
                         <h2 className="text-sm font-bold flex items-center gap-2 uppercase tracking-wider text-foreground/60"><Sparkles className="w-4 h-4 text-[#a083ff]" />AI 深度解读</h2>
                         <div className="flex items-center gap-2">
@@ -340,7 +341,7 @@ function TarotResultContent() {
                             )}
                         </div>
                     )}
-                </div>
+                </div></AIFeatureGate>
 
                 {/* 数秘术 */}
                 {(birthDate || numerology) && (

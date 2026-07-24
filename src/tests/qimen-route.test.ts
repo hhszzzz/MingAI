@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { NextRequest } from 'next/server';
-import { ensureRouteTestEnv } from './helpers/route-mock';
+import { ensureRouteTestEnv, mockAIFeatureState } from './helpers/route-mock';
 import { createMockUIMessageResult } from './helpers/ui-message-result';
 
 ensureRouteTestEnv();
@@ -33,6 +33,7 @@ function mockQimenUserContext(
 }
 
 test('qimen route persists analysis after streaming completes', async (t) => {
+  mockAIFeatureState(t);
     const credits = require('../lib/user/credits') as any;
     const aiAccessModule = require('../lib/ai/ai-access') as any;
     const aiModule = require('../lib/ai/ai') as any;
@@ -130,6 +131,7 @@ test('qimen route persists analysis after streaming completes', async (t) => {
 });
 
 test('qimen route surfaces SSE error when stream persistence fails after content generation', async (t) => {
+  mockAIFeatureState(t);
     const credits = require('../lib/user/credits') as any;
     const aiAccessModule = require('../lib/ai/ai-access') as any;
     const aiModule = require('../lib/ai/ai') as any;

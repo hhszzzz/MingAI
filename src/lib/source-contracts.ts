@@ -13,6 +13,8 @@ export const CONVERSATION_SOURCE_TYPES = [
   'dream',
   'qimen',
   'daliuren',
+  'meihua',
+  'xiaoliuren',
   'ziwei',
 ] as const;
 
@@ -31,7 +33,9 @@ export type FeatureUsageBucket =
   | 'fortune'
   | 'dream'
   | 'qimen'
-  | 'daliuren';
+  | 'daliuren'
+  | 'meihua'
+  | 'xiaoliuren';
 
 type SourceContractMeta = {
   featureUsageBucket: FeatureUsageBucket;
@@ -51,6 +55,8 @@ const SOURCE_META: Record<ConversationSourceType, SourceContractMeta> = {
   dream: { featureUsageBucket: 'dream', questionField: 'dreamContent' },
   qimen: { featureUsageBucket: 'qimen', questionField: 'question' },
   daliuren: { featureUsageBucket: 'daliuren', questionField: 'question' },
+  meihua: { featureUsageBucket: 'meihua', questionField: 'question' },
+  xiaoliuren: { featureUsageBucket: 'xiaoliuren', questionField: 'question' },
   ziwei: { featureUsageBucket: 'ziwei' },
 };
 
@@ -138,6 +144,18 @@ export type AnalysisSourceDataMap = {
     day_ganzhi?: string | null;
     hour_ganzhi?: string | null;
     yue_jiang?: string | null;
+  };
+  meihua: CommonAnalysisSourceData & {
+    method?: string | null;
+    main_hexagram?: string | null;
+    changed_hexagram?: string | null;
+    moving_line?: number | null;
+  };
+  xiaoliuren: CommonAnalysisSourceData & {
+    lunar_month?: number | null;
+    lunar_day?: number | null;
+    shichen?: string | null;
+    final_status?: string | null;
   };
   ziwei: CommonAnalysisSourceData & {
     chart_id?: string | null;

@@ -2,7 +2,7 @@ import test, { type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
 import { NextRequest } from 'next/server';
 
-import { ensureRouteTestEnv } from './helpers/route-mock';
+import { ensureRouteTestEnv, mockAIFeatureState } from './helpers/route-mock';
 
 ensureRouteTestEnv();
 
@@ -50,6 +50,7 @@ function createMockUIMessageResult(
 }
 
 function setupPipelineMocks(t: TestContext) {
+  mockAIFeatureState(t);
   const apiUtils = require('../lib/api-utils') as MutableModule;
   const credits = require('../lib/user/credits') as MutableModule;
   const aiAccess = require('../lib/ai/ai-access') as MutableModule;

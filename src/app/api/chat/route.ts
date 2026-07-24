@@ -20,6 +20,7 @@ import {
   parseChatRequestBody,
   prepareChatRequest,
 } from '@/lib/server/chat/request';
+import { getGlobalAIFeatureGuardResponse } from '@/lib/api/ai-feature-guard';
 
 export async function POST(request: NextRequest) {
   let creditDeducted = false;
@@ -27,6 +28,9 @@ export async function POST(request: NextRequest) {
   let canSkipCredit = false;
 
   try {
+    const featureGuardResponse = await getGlobalAIFeatureGuardResponse();
+    if (featureGuardResponse) return featureGuardResponse;
+
     const body = await parseChatRequestBody(request);
     if (body instanceof Response) {
       return body;

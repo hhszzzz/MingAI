@@ -96,4 +96,18 @@ export const AI_PERSONALITY_META: Record<AIPersonality, AIPersonalityMeta> = {
         description: '精通三传四课，以类神取用进行分类占断',
         emoji: '📜',
     },
+    meihua: {
+        id: 'meihua',
+        name: '梅花易数师',
+        title: '梅花易数分析',
+        description: '以体用、动爻与卦象演进为核心，给出结构化判断',
+        emoji: '🌸',
+    },
+    xiaoliuren: {
+        id: 'xiaoliuren',
+        name: '小六壬师',
+        title: '小六壬分析',
+        description: '沿月、日、时三步落宫，给出简明而可执行的提示',
+        emoji: '🧭',
+    },
 };

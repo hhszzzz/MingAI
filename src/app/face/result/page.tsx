@@ -16,6 +16,7 @@ import { AddToKnowledgeBaseModal } from '@/components/knowledge-base/AddToKnowle
 import { useKnowledgeBaseFeatureEnabled } from '@/components/knowledge-base/useKnowledgeBaseFeatureEnabled';
 import { useHeaderMenu } from '@/components/layout/HeaderMenuContext';
 import { useAnalysisSnapshot } from '@/lib/hooks/useAnalysisSnapshot';
+import { useFeatureToggles } from '@/lib/hooks/useFeatureToggles';
 
 interface FaceResultData {
     readingId?: string;
@@ -30,6 +31,8 @@ export default function FaceResultPage() {
     const router = useRouter();
     const { setMenuItems, clearMenuItems } = useHeaderMenu();
     const { knowledgeBaseEnabled } = useKnowledgeBaseFeatureEnabled();
+    const { loaded: aiFeatureLoaded, isFeatureEnabled } = useFeatureToggles();
+    const aiEnabled = aiFeatureLoaded && isFeatureEnabled('chat');
     const [loading, setLoading] = useState(true);
     const [resultData, setResultData] = useState<FaceResultData | null>(null);
     const [analysis, setAnalysis] = useState<string>('');
@@ -49,13 +52,17 @@ export default function FaceResultPage() {
         divinationType: 'face',
         sessionKey: 'face_result',
         hasExistingAnalysis: !!analysis,
-        skip: !resultData,
+        skip: !resultData || !aiEnabled,
         callbacks: snapshotCallbacks,
     });
 
     // 设置移动端 Header 菜单项
     useEffect(() => {
         const items = [];
+        if (!aiEnabled) {
+            clearMenuItems();
+            return;
+        }
         if (knowledgeBaseEnabled && resultData?.readingId) {
             items.push({
                 id: 'add-to-kb',
@@ -79,7 +86,7 @@ export default function FaceResultPage() {
         });
         setMenuItems(items);
         return () => clearMenuItems();
-    }, [knowledgeBaseEnabled, resultData?.readingId, resultData?.conversationId, router, setMenuItems, clearMenuItems]);
+    }, [aiEnabled, knowledgeBaseEnabled, resultData?.readingId, resultData?.conversationId, router, setMenuItems, clearMenuItems]);
 
     useEffect(() => {
         const loadResult = async () => {
@@ -122,6 +129,8 @@ export default function FaceResultPage() {
             router.push(`/chat?id=${resultData.conversationId}`);
         }
     };
+
+    if (!aiEnabled) return null;
 
     if (loading || awaitingSnapshot || snapshotLoading) {
         return (

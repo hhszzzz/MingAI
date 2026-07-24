@@ -1,412 +1,110 @@
-/**
- * TaiBu MCP Server - Online (Streamable HTTP)
- */
-
+/** TaiBu public MCP Server (Streamable HTTP, no authentication). */
 import { config } from 'dotenv';
-import { dirname, resolve } from 'path';
-import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-// 仅加载仓库根目录 .env，统一配置来源。
 const currentFileDir = dirname(fileURLToPath(import.meta.url));
-const repoRoot = resolve(currentFileDir, '../../..');
-config({ path: resolve(repoRoot, '.env'), override: false });
+config({ path: resolve(currentFileDir, '../../..', '.env'), override: false });
 
-import crypto from 'crypto';
+import crypto from 'node:crypto';
+import { createRequire } from 'node:module';
 import express from 'express';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { CallToolRequestSchema, ListToolsRequestSchema, isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-  isInitializeRequest,
-} from '@modelcontextprotocol/sdk/types.js';
-import { mcpAuthRouter } from '@modelcontextprotocol/sdk/server/auth/router.js';
-
-import {
-  executeTool,
   buildListToolsPayload,
   buildToolSuccessPayload,
+  executeTool,
   normalizeTransportDetailLevel,
 } from 'taibu-core/mcp';
-import { createRequire } from 'node:module';
-
 import {
-  dualAuthMiddleware,
-  rateLimitMiddleware,
-  oauthRateLimitMiddleware,
-  originValidationMiddleware,
+  asyncRequestHandler,
+  getClientIp,
   hostValidationMiddleware,
-  sseConnectionLimitMiddleware,
+  mcpErrorMiddleware,
+  originValidationMiddleware,
+  rateLimitMiddleware,
   readPositiveIntEnv,
-  type McpAuthInfo,
+  sseConnectionLimitMiddleware,
 } from './middleware.js';
-
-import { TaiBuOAuthProvider } from './oauth/provider.js';
-import { cleanupOAuthArtifactsTransactionally, saveAuthorizationCode } from './oauth/store.js';
-import { renderAuthorizePage } from './oauth/authorize-page.js';
-import { validateOAuthLoginRequest } from './oauth/login-validation.js';
-import { getAllowedTokenAudiences } from './oauth/jwt.js';
-import { isOAuthDebugEnabled, oauthError } from './oauth/logger.js';
-import { getSupabaseAuthClient } from './supabase.js';
 import {
   attachPlaceResolutionInfoToResult,
   attachPlaceResolutionNoteToPayload,
   decorateToolListPayloadForRuntime,
   preprocessToolArgsForRuntimePlace,
 } from './place-resolution.js';
+
 const require = createRequire(import.meta.url);
 const { version } = require('../package.json') as { version: string };
-// ─── 会话管理配置 ───
-const MAX_TOTAL_SESSIONS = readPositiveIntEnv('MCP_MAX_SESSIONS', 1000);
-const SESSION_TTL = readPositiveIntEnv('MCP_SESSION_TTL_MS', 1800000); // 30min
-const SESSION_IDLE = readPositiveIntEnv('MCP_SESSION_IDLE_MS', 600000); // 10min
-const IS_PRODUCTION = process.env.NODE_ENV === 'production';
-
-// ─── OAuth Provider ───
-const oauthProvider = new TaiBuOAuthProvider();
-const issuerUrl = new URL(process.env.MCP_ISSUER_URL || 'https://mcp.mingai.fun');
-const scopesSupported = ['mcp:tools'] as const;
-const resourceName = 'TaiBu MCP Server';
-const resourceServerUrl = new URL('/mcp', issuerUrl);
-
-/**
- * OAuth AS 元数据兼容对象。
- *
- * 端点路径与 MCP SDK mcpAuthRouter (v1.25.x) 内部注册的路由一致。
- * 若 SDK 升级后路径变更，需同步更新此处。
- */
-const oauthMetadataCompatibility = {
-  issuer: issuerUrl.href,
-  authorization_endpoint: new URL('/authorize', issuerUrl).href,
-  response_types_supported: ['code'],
-  code_challenge_methods_supported: ['S256'],
-  token_endpoint: new URL('/token', issuerUrl).href,
-  token_endpoint_auth_methods_supported: ['client_secret_post', 'none'],
-  grant_types_supported: ['authorization_code', 'refresh_token'],
-  scopes_supported: [...scopesSupported],
-  revocation_endpoint: new URL('/revoke', issuerUrl).href,
-  revocation_endpoint_auth_methods_supported: ['client_secret_post'],
-  registration_endpoint: new URL('/register', issuerUrl).href,
-};
-
-const protectedResourceMetadataCompatibility = {
-  resource: resourceServerUrl.href,
-  authorization_servers: [issuerUrl.href],
-  scopes_supported: [...scopesSupported],
-  resource_name: resourceName,
-};
-
 const app = express();
 
-// trust proxy（反向代理后需要）
-if (process.env.MCP_TRUST_PROXY === 'true') {
-  app.set('trust proxy', true);
-}
+const MAX_TOTAL_SESSIONS = readPositiveIntEnv('MCP_MAX_SESSIONS', 1000);
+const MAX_SESSIONS_PER_IP = readPositiveIntEnv('MCP_MAX_SESSIONS_PER_IP', 20);
+const SESSION_TTL_MS = readPositiveIntEnv('MCP_SESSION_TTL_MS', 1_800_000);
+const SESSION_IDLE_MS = readPositiveIntEnv('MCP_SESSION_IDLE_MS', 600_000);
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+const SEED_SCOPED_TOOLS = new Set(['liuyao', 'tarot']);
 
-if (isOAuthDebugEnabled()) {
-  // ─── OAuth 请求日志（调试用）───
-  app.use((req, _res, next) => {
-    const oauthPaths = ['/register', '/token', '/authorize', '/revoke', '/.well-known/'];
-    const isOAuth = oauthPaths.some((p) => req.path.startsWith(p));
-    if (isOAuth) {
-      console.log(`[OAuth:req] ${req.method} ${req.path}`);
-    }
-    next();
-  });
-
-  // ─── MCP 请求日志（调试用）───
-  app.use((req, res, next) => {
-    if (req.path !== '/' && req.path !== '/mcp') {
-      return next();
-    }
-
-    const accept = req.headers.accept ?? 'none';
-    const hasAuth = typeof req.headers.authorization === 'string' || typeof req.headers['x-api-key'] === 'string';
-    const sessionId = typeof req.headers['mcp-session-id'] === 'string' ? req.headers['mcp-session-id'] as string : '';
-    const protocolVersion = typeof req.headers['mcp-protocol-version'] === 'string'
-      ? req.headers['mcp-protocol-version'] as string
-      : '';
-    const sessionMark = sessionId ? ` session=${sessionId.slice(0, 8)}...` : '';
-    const protocolMark = protocolVersion ? ` proto=${protocolVersion}` : '';
-
-    res.on('finish', () => {
-      console.log(`[MCP:req] ${req.method} ${req.path} status=${res.statusCode} accept=${accept} auth=${hasAuth ? 'yes' : 'no'}${sessionMark}${protocolMark}`);
-    });
-
-    next();
-  });
-}
-
-// ─── OAuth 端点限流（在 mcpAuthRouter 之前，覆盖 /register /token /revoke）───
-app.use(['/register', '/token', '/revoke'], oauthRateLimitMiddleware);
-
-// ─── OAuth 路由（必须在 app root 且在 express.json 之前）───
-// mcpAuthRouter 内部自带 express.urlencoded 解析
-app.use(mcpAuthRouter({
-  provider: oauthProvider,
-  issuerUrl,
-  resourceServerUrl,
-  scopesSupported: [...scopesSupported],
-  resourceName,
-  // 禁用 SDK 内置限流，使用我们自己的
-  authorizationOptions: { rateLimit: false },
-  tokenOptions: { rateLimit: false },
-  clientRegistrationOptions: { rateLimit: false },
-  revocationOptions: { rateLimit: false },
-}));
-
-// ─── OAuth 登录表单处理（授权页 POST 目标）───
-app.post('/oauth/login', oauthRateLimitMiddleware, express.urlencoded({ extended: false }), async (req, res) => {
-  const {
-    email, password,
-    client_id, redirect_uri, code_challenge, code_challenge_method,
-    state, scope, resource,
-  } = req.body as Record<string, string>;
-
-  // 参数校验
-  if (!email || !password || !client_id || !redirect_uri || !code_challenge) {
-    const html = renderAuthorizePage({
-      clientId: client_id || '',
-      redirectUri: redirect_uri || '',
-      codeChallenge: code_challenge || '',
-      codeChallengeMethod: code_challenge_method || 'S256',
-      state, scope, resource,
-      scopes: scope ? scope.split(' ') : [],
-      error: '请填写邮箱和密码',
-    });
-    return res.status(400).send(html);
-  }
-
-  // 验证客户端
-  let client;
-  try {
-    client = await oauthProvider.clientsStore.getClient(client_id);
-  } catch (error) {
-    oauthError('OAuth client lookup failed', error);
-    return res.status(500).json({ error: 'OAuth service unavailable' });
-  }
-  if (!client) {
-    return res.status(400).json({ error: 'Invalid client_id' });
-  }
-
-  const validation = validateOAuthLoginRequest({
-    client,
-    redirectUri: redirect_uri,
-    scope,
-    resource,
-    issuerUrl,
-    allowedAudiences: getAllowedTokenAudiences(issuerUrl),
-  });
-
-  if (!validation.ok) {
-    const errorMessageMap: Record<string, string> = {
-      'Invalid redirect_uri': 'redirect_uri 非法或未注册',
-      'Invalid scope': 'scope 非法或超出客户端权限',
-      'Invalid resource': 'resource 非法',
-    };
-    const html = renderAuthorizePage({
-      clientName: client.client_name,
-      clientId: client_id,
-      redirectUri: redirect_uri,
-      codeChallenge: code_challenge,
-      codeChallengeMethod: code_challenge_method || 'S256',
-      state,
-      scope,
-      resource,
-      scopes: scope ? scope.split(' ') : [],
-      error: errorMessageMap[validation.error] || '授权参数非法',
-    });
-    return res.status(400).send(html);
-  }
-
-  const validated = validation.value;
-
-  // 用 Supabase Auth 验证用户凭据（需要纯 anon 客户端，不能用 accessToken 模式）
-  const supabase = getSupabaseAuthClient();
-  const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (authError || !authData.user) {
-    const html = renderAuthorizePage({
-      clientName: client.client_name,
-      clientId: client_id,
-      redirectUri: validated.redirectUri,
-      codeChallenge: code_challenge,
-      codeChallengeMethod: code_challenge_method || 'S256',
-      state,
-      scope: validated.scope,
-      resource: validated.resource,
-      scopes: validated.scopes,
-      error: '邮箱或密码错误',
-    });
-    return res.status(401).send(html);
-  }
-
-  // 生成授权码
-  try {
-    const code = await saveAuthorizationCode({
-      clientId: client_id,
-      userId: authData.user.id,
-      redirectUri: validated.redirectUri,
-      codeChallenge: code_challenge,
-      scope: validated.scope,
-      resource: validated.resource,
-    });
-
-    // 重定向回客户端
-    const redirectUrl = new URL(validated.redirectUri);
-    redirectUrl.searchParams.set('code', code);
-    if (state) redirectUrl.searchParams.set('state', state);
-    res.redirect(302, redirectUrl.href);
-  } catch {
-    const html = renderAuthorizePage({
-      clientName: client.client_name,
-      clientId: client_id,
-      redirectUri: validated.redirectUri,
-      codeChallenge: code_challenge,
-      codeChallengeMethod: code_challenge_method || 'S256',
-      state,
-      scope: validated.scope,
-      resource: validated.resource,
-      scopes: validated.scopes,
-      error: '授权失败，请重试',
-    });
-    return res.status(500).send(html);
-  }
-});
-
+if (process.env.MCP_TRUST_PROXY === 'true') app.set('trust proxy', true);
 app.use(express.json({ limit: '1mb' }));
 
-// 信息端点（便于手工检查服务可用性）
-app.get('/info', (_req, res) => {
-  res.status(200).json({
-    name: 'TaiBu MCP Server',
-    status: 'ok',
-    transport: 'streamable-http',
-    mcp_endpoint: resourceServerUrl.pathname,
-    oauth_authorization_server_metadata: '/.well-known/oauth-authorization-server',
-    oauth_protected_resource_metadata: `/.well-known/oauth-protected-resource${resourceServerUrl.pathname}`,
+if (process.env.MCP_REQUEST_LOG === 'true') {
+  app.use((req, res, next) => {
+    const startedAt = Date.now();
+    res.on('finish', () => {
+      console.log(`[MCP] ${req.method} ${req.path} status=${res.statusCode} ip=${getClientIp(req)} duration=${Date.now() - startedAt}ms`);
+    });
+    next();
   });
-});
+}
 
-// 兼容 OIDC 发现探测（部分客户端会尝试 openid-configuration）
-app.get('/.well-known/openid-configuration', (_req, res) => {
-  res.status(200).json(oauthMetadataCompatibility);
-});
-
-// 兼容客户端对 root protected-resource metadata 的探测
-app.get('/.well-known/oauth-protected-resource', (_req, res) => {
-  res.status(200).json(protectedResourceMetadataCompatibility);
-});
-
-// 健康检查（不需要认证）
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// 开发环境：授权页预览（无需走完整 OAuth 流程即可调试样式）
-if (!IS_PRODUCTION) {
-  app.get('/dev/authorize-preview', (_req, res) => {
-    const html = renderAuthorizePage({
-      clientName: 'ChatGPT',
-      scopes: ['mcp:tools'],
-      clientId: 'preview-client-id',
-      redirectUri: 'https://example.com/callback',
-      codeChallenge: 'preview-challenge',
-      codeChallengeMethod: 'S256',
-      state: 'preview-state',
-      scope: 'mcp:tools',
-      error: _req.query.error === '1' ? '邮箱或密码错误' : undefined,
-    });
-    res.send(html);
+app.get('/info', (_req, res) => {
+  res.json({
+    name: 'TaiBu MCP Server',
+    version,
+    status: 'ok',
+    transport: 'streamable-http',
+    auth: 'none',
+    mcp_endpoint: '/mcp',
   });
-}
-
-// ─── 双模式认证中间件实例 ───
-const mcpAuth = dualAuthMiddleware(oauthProvider);
+});
 
 type SessionContext = {
   server: McpServer;
   transport: StreamableHTTPServerTransport;
-  auth: McpAuthInfo;
+  clientIp: string;
   createdAt: number;
   lastActivityAt: number;
 };
 
-const SEED_SCOPED_TOOLS = new Set(['liuyao', 'tarot']);
-
-function withSeedScope(name: string, args: unknown, auth: McpAuthInfo): unknown {
-  if (!SEED_SCOPED_TOOLS.has(name)) {
-    return args === undefined ? {} : args;
-  }
-  if (args === undefined) {
-    return { seedScope: auth.userId };
-  }
-  if (!args || typeof args !== 'object' || Array.isArray(args)) {
-    return args;
-  }
-  return {
-    ...(args as Record<string, unknown>),
-    seedScope: auth.userId,
-  };
-}
-
-// 存储活跃会话
 const sessions = new Map<string, SessionContext>();
 
-function getSessionIdHeader(req: express.Request): string | undefined {
-  const sessionId = req.headers['mcp-session-id'];
-  return typeof sessionId === 'string' ? sessionId : undefined;
+function withSeedScope(name: string, args: unknown, seedScope: string): unknown {
+  if (!SEED_SCOPED_TOOLS.has(name)) return args === undefined ? {} : args;
+  if (args === undefined) return { seedScope };
+  if (!args || typeof args !== 'object' || Array.isArray(args)) return args;
+  return { ...(args as Record<string, unknown>), seedScope };
 }
 
-function cleanupSession(sessionId: string) {
-  const session = sessions.get(sessionId);
-  if (!session) return;
-  sessions.delete(sessionId);
-  session.server.close().catch(() => {});
-}
-
-function isSessionOwner(session: SessionContext, auth: McpAuthInfo): boolean {
-  return session.auth.userId === auth.userId;
-}
-
-// 定期清理过期/空闲会话
-const sessionCleanupTimer = setInterval(() => {
-  const now = Date.now();
-  for (const [id, ctx] of sessions) {
-    if (now - ctx.createdAt > SESSION_TTL || now - ctx.lastActivityAt > SESSION_IDLE) {
-      cleanupSession(id);
-    }
-  }
-}, 60_000);
-sessionCleanupTimer.unref?.();
-
-// 定期清理 OAuth 过期数据（每6小时）
-const oauthCleanupTimer = setInterval(async () => {
-  try {
-    await cleanupOAuthArtifactsTransactionally();
-  } catch (err) {
-    console.error('[OAuth cleanup] failed:', err instanceof Error ? err.message : err);
-  }
-}, 6 * 60 * 60 * 1000);
-oauthCleanupTimer.unref?.();
-
-function createMcpServer(auth: McpAuthInfo) {
+function createMcpServer(seedScope: string) {
   const server = new McpServer(
     { name: 'taibu-mcp-online', version },
-    { capabilities: { tools: {} } }
+    { capabilities: { tools: {} } },
   );
 
-  // 列出工具
-  server.server.setRequestHandler(ListToolsRequestSchema, async () => decorateToolListPayloadForRuntime(buildListToolsPayload()));
+  server.server.setRequestHandler(ListToolsRequestSchema, async () => (
+    decorateToolListPayloadForRuntime(buildListToolsPayload())
+  ));
 
-  // 调用工具（错误脱敏）
   server.server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
-    const seedScopedArgs = withSeedScope(name, args, auth);
-    const { toolArgs, placeResolutionInfo } = await preprocessToolArgsForRuntimePlace(name, seedScopedArgs);
+    const scopedArgs = withSeedScope(name, args, seedScope);
+    const { toolArgs, placeResolutionInfo } = await preprocessToolArgsForRuntimePlace(name, scopedArgs);
 
     try {
       const rawResult = await executeTool(name, toolArgs);
@@ -416,13 +114,8 @@ function createMcpServer(auth: McpAuthInfo) {
       return attachPlaceResolutionNoteToPayload(payload, placeResolutionInfo);
     } catch (error) {
       const internalMessage = error instanceof Error ? error.message : String(error);
-
-      const userMessage = IS_PRODUCTION
-        ? 'Tool execution failed'
-        : `Error: ${internalMessage}`;
-
       return {
-        content: [{ type: 'text', text: userMessage }],
+        content: [{ type: 'text' as const, text: IS_PRODUCTION ? 'Tool execution failed' : `Error: ${internalMessage}` }],
         isError: true,
       };
     }
@@ -431,125 +124,127 @@ function createMcpServer(auth: McpAuthInfo) {
   return server;
 }
 
-async function handleStatelessRequest(
+function getSessionId(req: express.Request): string | undefined {
+  const value = req.headers['mcp-session-id'];
+  return typeof value === 'string' && value ? value : undefined;
+}
+
+function cleanupSession(sessionId: string) {
+  const session = sessions.get(sessionId);
+  if (!session) return;
+  sessions.delete(sessionId);
+  void session.server.close().catch(() => {});
+}
+
+function countSessionsForIp(ip: string): number {
+  let count = 0;
+  for (const session of sessions.values()) {
+    if (session.clientIp === ip) count += 1;
+  }
+  return count;
+}
+
+function resolveBoundSession(
   req: express.Request,
   res: express.Response,
-  auth: McpAuthInfo,
-  parsedBody?: unknown,
-) {
-  const server = createMcpServer(auth);
-  const transport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: undefined,
-  });
+  sessionId: string,
+): SessionContext | undefined {
+  const session = sessions.get(sessionId);
+  if (!session) {
+    res.status(404).json({ error: 'Session not found' });
+    return undefined;
+  }
+  if (session.clientIp !== getClientIp(req)) {
+    res.status(403).json({ error: 'Session IP mismatch' });
+    return undefined;
+  }
+  return session;
+}
 
-  transport.onclose = () => {
-    void server.close().catch(() => {});
-  };
-  transport.onerror = () => {
-    void server.close().catch(() => {});
-  };
+const sessionCleanupTimer = setInterval(() => {
+  const now = Date.now();
+  for (const [id, session] of sessions) {
+    if (now - session.createdAt > SESSION_TTL_MS || now - session.lastActivityAt > SESSION_IDLE_MS) {
+      cleanupSession(id);
+    }
+  }
+}, 60_000);
+sessionCleanupTimer.unref?.();
 
-  let closed = false;
+async function handleStatelessRequest(req: express.Request, res: express.Response, parsedBody?: unknown) {
+  const server = createMcpServer(`anonymous:${getClientIp(req)}`);
+  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+  transport.onclose = () => { void server.close().catch(() => {}); };
+  transport.onerror = () => { void server.close().catch(() => {}); };
+
   try {
     await server.connect(transport);
     await transport.handleRequest(req, res, parsedBody);
   } catch (error) {
-    closed = true;
     await server.close().catch(() => {});
     if (!res.headersSent) {
       return res.status(500).json({
         jsonrpc: '2.0',
-        error: {
-          code: -32603,
-          message: 'Internal server error',
-        },
+        error: { code: -32603, message: 'Internal server error' },
         id: null,
       });
     }
     throw error;
   } finally {
-    if (!closed) {
-      if (req.method === 'GET') {
-        // SSE 长连接：连接关闭时再清理，避免提前断开流
-        res.on('close', () => { void server.close().catch(() => {}); });
-      } else {
-        await server.close().catch(() => {});
-      }
-    }
+    if (req.method === 'GET') res.once('close', () => { void server.close().catch(() => {}); });
+    else await server.close().catch(() => {});
   }
 }
 
 const handleMcpPost: express.RequestHandler = async (req, res) => {
-  const sessionId = getSessionIdHeader(req);
-  const auth = req.mcpAuth!;
-
-  // 已有会话：复用 transport
+  const sessionId = getSessionId(req);
   if (sessionId) {
-    const existing = sessions.get(sessionId);
-    if (!existing) {
-      return res.status(404).json({ error: 'Session not found' });
-    }
-    if (!isSessionOwner(existing, auth)) {
-      return res.status(403).json({ error: 'Session does not belong to current user' });
-    }
-    existing.lastActivityAt = Date.now();
-    await existing.transport.handleRequest(req, res, req.body);
+    const session = resolveBoundSession(req, res, sessionId);
+    if (!session) return;
+    session.lastActivityAt = Date.now();
+    await session.transport.handleRequest(req, res, req.body);
     return;
   }
 
-  // 兼容无 session-id 的 stateless 客户端（例如部分 MCP 集成实现）
   if (!isInitializeRequest(req.body)) {
-    await handleStatelessRequest(req, res, auth, req.body);
+    await handleStatelessRequest(req, res, req.body);
     return;
   }
 
-  // 会话上限检查
+  const clientIp = getClientIp(req);
   if (sessions.size >= MAX_TOTAL_SESSIONS) {
     return res.status(503).json({ error: 'Server at capacity, try again later' });
   }
+  if (countSessionsForIp(clientIp) >= MAX_SESSIONS_PER_IP) {
+    return res.status(429).json({ error: 'Too many active sessions for this IP' });
+  }
 
-  const server = createMcpServer(auth);
+  const initializedSessionId = crypto.randomUUID();
+  const server = createMcpServer(initializedSessionId);
   const now = Date.now();
   const transport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: () => crypto.randomUUID(),
-    onsessioninitialized: (initializedSessionId) => {
-      sessions.set(initializedSessionId, {
-        server, transport, auth,
-        createdAt: now, lastActivityAt: now,
-      });
+    sessionIdGenerator: () => initializedSessionId,
+    onsessioninitialized: (id) => {
+      const session = sessions.get(id);
+      if (session) session.lastActivityAt = Date.now();
     },
-    onsessionclosed: (closedSessionId) => {
-      cleanupSession(closedSessionId);
-    },
+    onsessionclosed: cleanupSession,
   });
-
-  transport.onclose = () => {
-    if (transport.sessionId) {
-      cleanupSession(transport.sessionId);
-    }
-  };
-
-  transport.onerror = () => {
-    if (transport.sessionId) {
-      cleanupSession(transport.sessionId);
-    }
-  };
+  transport.onclose = () => { if (transport.sessionId) cleanupSession(transport.sessionId); };
+  transport.onerror = () => { if (transport.sessionId) cleanupSession(transport.sessionId); };
+  // Reserve the slot before the first await so concurrent initializations see it.
+  sessions.set(initializedSessionId, { server, transport, clientIp, createdAt: now, lastActivityAt: now });
 
   try {
     await server.connect(transport);
     await transport.handleRequest(req, res, req.body);
   } catch (error) {
-    if (transport.sessionId) {
-      sessions.delete(transport.sessionId);
-    }
+    sessions.delete(initializedSessionId);
     await server.close().catch(() => {});
     if (!res.headersSent) {
       return res.status(500).json({
         jsonrpc: '2.0',
-        error: {
-          code: -32603,
-          message: 'Internal server error',
-        },
+        error: { code: -32603, message: 'Internal server error' },
         id: null,
       });
     }
@@ -558,75 +253,45 @@ const handleMcpPost: express.RequestHandler = async (req, res) => {
 };
 
 const handleMcpGet: express.RequestHandler = async (req, res) => {
-  const sessionId = getSessionIdHeader(req);
-  const auth = req.mcpAuth!;
+  const sessionId = getSessionId(req);
   if (!sessionId) {
-    await handleStatelessRequest(req, res, auth);
+    await handleStatelessRequest(req, res);
     return;
   }
-
-  const session = sessions.get(sessionId);
-  if (!session) {
-    return res.status(404).json({ error: 'Session not found' });
-  }
-  if (!isSessionOwner(session, auth)) {
-    return res.status(403).json({ error: 'Session does not belong to current user' });
-  }
+  const session = resolveBoundSession(req, res, sessionId);
+  if (!session) return;
   session.lastActivityAt = Date.now();
-
   await session.transport.handleRequest(req, res);
 };
 
 const handleMcpDelete: express.RequestHandler = async (req, res) => {
-  const sessionId = getSessionIdHeader(req);
-  const auth = req.mcpAuth!;
-  if (!sessionId) {
-    return res.status(400).json({ error: 'Missing mcp-session-id header' });
-  }
-
-  const session = sessions.get(sessionId);
-  if (!session) {
-    return res.status(404).json({ error: 'Session not found' });
-  }
-  if (!isSessionOwner(session, auth)) {
-    return res.status(403).json({ error: 'Session does not belong to current user' });
-  }
-
+  const sessionId = getSessionId(req);
+  if (!sessionId) return res.status(400).json({ error: 'Missing mcp-session-id header' });
+  const session = resolveBoundSession(req, res, sessionId);
+  if (!session) return;
   await session.transport.handleRequest(req, res, req.body);
+  cleanupSession(sessionId);
 };
 
-// Streamable HTTP - canonical MCP path + root path compatibility alias
-app.post(['/', '/mcp'], originValidationMiddleware, hostValidationMiddleware, mcpAuth, rateLimitMiddleware, handleMcpPost);
-app.get(['/', '/mcp'], originValidationMiddleware, hostValidationMiddleware, mcpAuth, rateLimitMiddleware, sseConnectionLimitMiddleware, handleMcpGet);
-app.delete(['/', '/mcp'], originValidationMiddleware, hostValidationMiddleware, mcpAuth, rateLimitMiddleware, handleMcpDelete);
+const networkGuards = [originValidationMiddleware, hostValidationMiddleware, rateLimitMiddleware];
+app.post(['/', '/mcp'], ...networkGuards, asyncRequestHandler(handleMcpPost));
+app.get(['/', '/mcp'], ...networkGuards, sseConnectionLimitMiddleware, asyncRequestHandler(handleMcpGet));
+app.delete(['/', '/mcp'], ...networkGuards, asyncRequestHandler(handleMcpDelete));
+app.use(mcpErrorMiddleware);
 
-// 启动服务器
-const PORT = parseInt(process.env.PORT || '3001', 10);
+const PORT = Number.parseInt(process.env.PORT || '3001', 10);
 const HOST = process.env.MCP_HOST || '127.0.0.1';
 const httpServer = app.listen(PORT, HOST, () => {
-  console.log(`TaiBu MCP Server (Streamable HTTP + OAuth 2.1) running on ${HOST}:${PORT} at /mcp`);
+  console.log(`TaiBu MCP Server (public Streamable HTTP) running on ${HOST}:${PORT} at /mcp`);
 });
 
-// ─── 优雅关闭 ───
 function gracefulShutdown(signal: string) {
   console.log(`\n[${signal}] Shutting down MCP server...`);
-
-  // 停止接受新连接
-  httpServer.close(() => {
-    console.log('HTTP server closed');
-  });
-
-  // 清理所有活跃会话
+  httpServer.close(() => console.log('HTTP server closed'));
   const sessionCount = sessions.size;
-  for (const [id] of sessions) {
-    cleanupSession(id);
-  }
+  for (const id of sessions.keys()) cleanupSession(id);
   console.log(`Cleaned up ${sessionCount} sessions`);
-
-  // 给进行中的请求一点时间完成
-  setTimeout(() => {
-    process.exit(0);
-  }, 3000);
+  setTimeout(() => process.exit(0), 3000);
 }
 
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));

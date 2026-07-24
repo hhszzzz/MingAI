@@ -24,9 +24,10 @@ import {
   Scroll,
   CircleQuestionMark,
   Telescope,
+  Waypoints,
   type LucideIcon,
 } from 'lucide-react';
-import { YinYangIcon, CheckerboardIcon, CompassRoseIcon, StarOfDavidIcon } from '@phosphor-icons/react';
+import { YinYangIcon, CheckerboardIcon, CompassRoseIcon, StarOfDavidIcon, FlowerLotusIcon } from '@phosphor-icons/react';
 import { createElement, type ComponentType } from 'react';
 import { getSettingsCenterRouteTarget } from '@/lib/settings-center';
 
@@ -96,6 +97,8 @@ export const NAV_REGISTRY: readonly NavItemDef[] = [
   { id: 'liuyao', href: '/liuyao', label: '六爻', icon: Dices, emoji: '☯️', description: '六爻占卜', category: 'divination' },
   { id: 'qimen', href: '/qimen', label: '奇门遁甲', icon: PCheckerboard, emoji: '🧭', description: '奇门遁甲', category: 'divination' },
   { id: 'daliuren', href: '/daliuren', label: '大六壬', icon: Telescope, emoji: '📜', description: '大六壬', category: 'divination' },
+  { id: 'meihua', href: '/meihua', label: '梅花易数', icon: FlowerLotusIcon, description: '梅花易数', category: 'divination' },
+  { id: 'xiaoliuren', href: '/xiaoliuren', label: '小六壬', icon: Waypoints, description: '小六壬', category: 'divination' },
   { id: 'face', href: '/face', label: '面相', icon: ScanFace, emoji: '👤', description: '面相分析', category: 'divination' },
   { id: 'palm', href: '/palm', label: '手相', icon: Hand, emoji: '🖐️', description: '手相分析', category: 'divination' },
   { id: 'mbti', href: '/mbti', label: 'MBTI', icon: Brain, emoji: '🧩', description: '性格测试', category: 'divination' },
@@ -187,7 +190,7 @@ export function getFeatureModules(): { id: string; label: string }[] {
 
 /** Label overrides for the admin feature-toggle panel. */
 const adminLabelOverride: Record<string, string> = {
-  chat: 'AI 对话',
+  chat: 'AI 功能',
   community: '社区',
   records: '命理记录',
   daily: '日运',
@@ -203,7 +206,7 @@ const adminLabelOverride: Record<string, string> = {
 /** Features that only appear in the admin toggle panel. */
 const ADMIN_ONLY_FEATURES: { id: string; label: string }[] = [
   { id: 'checkin', label: '签到' },
-  { id: 'mcp-service', label: 'MCP OAuth' },
+  { id: 'mcp-service', label: 'MCP 服务' },
 ];
 
 /** Lookup a single registry entry by id. */

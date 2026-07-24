@@ -1,45 +1,17 @@
 # taibu-mcp-server
 
-TaiBu 的在线 MCP Server，基于 Streamable HTTP 运行，面向远程部署场景。
+TaiBu 的公共在线 MCP Server，使用 Streamable HTTP，任何网络客户端都可以直接连接，不要求 OAuth、API Key 或数据库。
 
-当前发布线：`2.0.x`
+## 功能
 
-说明：本 README 将 `1.2.5` 之后累计的改动按功能重排为 `1.2.6 -> 1.3.0 -> 1.4.0 -> 1.5.0 -> 2.0.0`，便于按大功能分批发布 npm 版本。
+- 复用 `taibu-core` 的全部公开 MCP 工具
+- 标准入口：`POST /mcp`、`GET /mcp`、`DELETE /mcp`
+- `content[0].text` 返回规范文本，`structuredContent` 返回 canonical JSON
+- 有状态会话和无状态客户端兼容
+- Host、Origin、请求体、IP 请求频率、SSE、单 IP 会话及总会话容量保护
+- 可选高德地点解析；未配置时保留 core 的原始地点处理行为
 
-## 适用场景
-
-- 需要把 TaiBu MCP 工具部署成远程服务
-- 需要 OAuth 2.1 + PKCE 接入 ChatGPT 等 MCP 客户端
-- 需要继续兼容用户级 API Key 调用
-
-## 安装
-
-```bash
-npm install taibu-mcp-server
-```
-
-## 核心特性
-
-- 复用 `taibu-core` 的 15 个工具能力
-- Streamable HTTP 入口：`/mcp`
-- OAuth 2.1 + PKCE + 动态客户端注册
-- `Authorization: Bearer <token>` 与 `x-api-key` 双认证链路
-- 基于共享 transport 的 `structuredContent + content` 响应策略
-- OAuth 授权页内置当前工具清单展示
-
-## 输出约定
-
-在线 MCP 响应分成两条通道：
-
-- `content[0].text`: canonical text，适合直接阅读或继续交给 AI
-- `structuredContent`: canonical JSON，并与工具公开 `outputSchema` 对齐，适合客户端按 schema 消费
-
-注意：
-
-- `structuredContent` 与 Web 结果页使用的是同源 canonical JSON
-- `content[0].text` 只承担文本阅读，不再承载 JSON 字符串
-
-## 最小运行方式
+## 运行
 
 ```bash
 pnpm install
@@ -48,98 +20,57 @@ pnpm -C packages/mcp-server build
 pnpm -C packages/mcp-server start
 ```
 
-默认服务信息：
+默认监听 `127.0.0.1:3001`：
 
 - `GET /health`
 - `GET /info`
 - `POST /mcp`
-- `GET /.well-known/oauth-authorization-server`
-- `GET /.well-known/oauth-protected-resource`
+
+`/info` 的 `auth` 固定为 `none`。服务不会读取或验证 `Authorization`、`x-api-key`。
+
+## 客户端配置
+
+```json
+{
+  "mcpServers": {
+    "taibu": {
+      "type": "streamable-http",
+      "url": "https://mcp.mingai.fun/mcp"
+    }
+  }
+}
+```
 
 ## 环境变量
 
-### 基础运行
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `MCP_HOST` | `127.0.0.1` | 监听地址；容器中使用 `0.0.0.0` |
+| `PORT` | `3001` | 服务端口 |
+| `MCP_ALLOWED_ORIGINS` | 空 | 浏览器 Origin 白名单；无 Origin 的 MCP 客户端正常放行 |
+| `MCP_ALLOWED_HOSTS` | 空 | 可选 Host 白名单 |
+| `MCP_MAX_SESSIONS` | `1000` | 最大活跃会话数 |
+| `MCP_MAX_SESSIONS_PER_IP` | `20` | 单 IP 最大活跃会话数 |
+| `MCP_SESSION_TTL_MS` | `1800000` | 会话最大生命周期 |
+| `MCP_SESSION_IDLE_MS` | `600000` | 会话空闲超时 |
+| `MCP_RATE_LIMIT_PER_MINUTE` | `120` | 单 IP、单 HTTP method 每分钟请求数 |
+| `MCP_MAX_SSE_PER_IP` | `3` | 单 IP SSE 并发数 |
+| `MCP_TRUST_PROXY` | `false` | 仅在服务位于受信反向代理后启用 |
+| `MCP_REQUEST_LOG` | `false` | 输出匿名请求日志 |
+| `AMAP_WEB_SERVICE_KEY` | 空 | 可选地点解析密钥 |
 
-| 变量 | 说明 |
-|------|------|
-| `SUPABASE_URL` | Supabase 项目地址 |
-| `SUPABASE_ANON_KEY` | Supabase anon key |
-| `SUPABASE_SYSTEM_ADMIN_EMAIL` | 系统管理员邮箱，用于 MCP Server 受控访问数据库 |
-| `SUPABASE_SYSTEM_ADMIN_PASSWORD` | 系统管理员密码 |
-| `MCP_HOST` | 监听地址，默认 `127.0.0.1` |
-| `PORT` | 端口，默认 `3001` |
-| `MCP_ALLOWED_ORIGINS` | 浏览器 Origin 白名单 |
-| `MCP_ALLOWED_HOSTS` | Host 白名单 |
-| `MCP_MAX_SESSIONS` | 最大并发会话数 |
-| `MCP_SESSION_TTL_MS` | 会话生命周期 |
-| `MCP_SESSION_IDLE_MS` | 会话空闲超时 |
-| `MCP_MAX_SSE_PER_USER` | 每用户 SSE 并发上限 |
-| `MCP_TRUST_PROXY` | 反向代理后设为 `true` |
-| `TAIBU_SITE_URL` | OAuth 授权页 Logo 与站点链接来源 |
-| `AMAP_WEB_SERVICE_KEY` | 可选。出生地点解析服务所需的高德 Web Service Key |
+浏览器请求必须配置 `MCP_ALLOWED_ORIGINS`；生产环境应列出确切来源，不建议使用 `*`。这项校验是 DNS rebinding 防护，不是用户认证。
 
-### OAuth 2.1
+## Docker Compose
 
-| 变量 | 说明 |
-|------|------|
-| `MCP_JWT_SECRET` | JWT 签名密钥，至少 32 字符 |
-| `MCP_ISSUER_URL` | OAuth issuer URL |
-| `MCP_ALLOWED_TOKEN_AUDIENCES` | 额外允许的 access token audience |
-| `MCP_ACCESS_TOKEN_TTL` | Access token 有效期，单位秒 |
-| `MCP_REFRESH_TOKEN_TTL` | Refresh token 有效期，单位秒 |
-| `MCP_OAUTH_DEBUG` | OAuth 调试日志开关 |
-
-## MCP 客户端示例
-
-### OAuth / Streamable HTTP
-
-```json
-{
-  "mcpServers": {
-    "taibu": {
-      "type": "streamable-http",
-      "url": "https://your-domain.example.com/mcp"
-    }
-  }
-}
+```bash
+docker compose --env-file .env -f docker-compose.mcp.yml up -d --build
 ```
 
-### API Key 调用
+公共 MCP 容器不需要任何 Supabase、JWT 或站点账号变量。
 
-```json
-{
-  "mcpServers": {
-    "taibu": {
-      "type": "streamable-http",
-      "url": "https://your-domain.example.com/mcp",
-      "headers": {
-        "x-api-key": "sk-mcp-xxxxxxxx"
-      }
-    }
-  }
-}
-```
+## 包关系
 
-Bearer token 的优先级高于 API Key；若 Bearer token 存在但无效，不会回退到 API Key。
-
-## 与其他包的关系
-
-- [`taibu-core`](https://www.npmjs.com/package/taibu-core): 工具注册、算法实现、transport 适配器
-- [`taibu-mcp`](https://www.npmjs.com/package/taibu-mcp): 本地 `stdio` MCP Server
-
-注意：`taibu-core` 仍保持纯算法边界，本身不接地图服务，也不会自动把地点名换算为经度。
-
-## License
-
-`taibu-mcp-server` 使用 `MIT` 许可证，详见当前目录下的 `LICENSE` 文件。
-
-## 版本批次
-
-| 版本 | 批次说明 |
-|------|----------|
-| `2.0.0` | 跟随 core 切换到最终 MCP 契约：`content` 输出规范文本，`structuredContent` 输出 canonical JSON，在线服务保留 runtime `placeResolutionInfo` 扩展 |
-| `1.5.0` | 统一在线服务版本号，收口共享 transport、动态授权页工具展示、会话管理与运行时契约 |
-| `1.4.0` | 跟随核心接入 `daliuren` 大六壬工具 |
-| `1.3.0` | 跟随核心接入 `qimen` 奇门遁甲工具 |
-| `1.2.6` | 延续 `1.2.5` 做补丁发布，集中修复缓存回源、鉴权边界、结构化输出与测试覆盖 |
-| `1.2.5` | `core` / `mcp` 的旧基线版本；本次将在线服务也统一收口到同一版本线 |
+- `taibu-core`：算法、工具 manifest、规范文本和 JSON
+- `taibu-mcp`：本地 Stdio MCP Server
+- `taibu-mcp-server`：公共 Streamable HTTP 运行时

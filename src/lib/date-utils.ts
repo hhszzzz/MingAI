@@ -6,6 +6,15 @@ import { LunarMonth } from 'lunar-javascript';
 import type { CalendarType } from '@/types';
 
 /**
+ * Format a local wall-clock value for an HTML datetime-local input.
+ * Deliberately avoids UTC conversion so the browser-visible time is preserved.
+ */
+export function toDateTimeLocalValue(date = new Date()): string {
+    const pad = (value: number) => String(value).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+/**
  * 获取指定年月的天数
  * 支持公历和农历（含闰月）
  */

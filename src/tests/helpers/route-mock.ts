@@ -6,6 +6,8 @@
  */
 
 import { createMockSupabaseClient, FREE_USER_TABLE, type MockSupabaseConfig } from './supabase-mock';
+import type { TestContext } from 'node:test';
+import type { FeatureModuleState } from '../../lib/app-settings';
 
 export type { MockSupabaseConfig };
 export { createMockSupabaseClient, FREE_USER_TABLE };
@@ -40,6 +42,24 @@ export function ensureRouteTestEnv() {
             supportsReasoning: false,
         },
     ]);
+}
+
+/**
+ * Keeps route tests explicit about the global AI capability state. Production
+ * handlers still execute the real fail-closed app-settings read.
+ */
+export function mockAIFeatureState(
+    t: Pick<TestContext, 'after'>,
+    state: FeatureModuleState = { status: 'enabled' },
+) {
+    /* eslint-disable @typescript-eslint/no-require-imports */
+    const appSettings = require('../../lib/app-settings') as typeof import('../../lib/app-settings');
+    /* eslint-enable @typescript-eslint/no-require-imports */
+    const original = appSettings.readFeatureModuleStateFresh;
+    appSettings.readFeatureModuleStateFresh = async () => state;
+    t.after(() => {
+        appSettings.readFeatureModuleStateFresh = original;
+    });
 }
 
 interface RouteTestSetup {
@@ -79,9 +99,16 @@ export function setupRouteTest(options: RouteTestOptions = {}): RouteTestSetup {
     const credits = require('../../lib/user/credits') as any;
     const supabaseModule = require('../../lib/auth') as any;
     const supabaseServerModule = require('../../lib/supabase-server') as any;
+    const appSettings = require('../../lib/app-settings') as typeof import('../../lib/app-settings');
     /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any */
 
     const originals: Array<() => void> = [consoleCapture.restore];
+
+    const originalReadFeatureModuleStateFresh = appSettings.readFeatureModuleStateFresh;
+    appSettings.readFeatureModuleStateFresh = async () => ({ status: 'enabled' });
+    originals.push(() => {
+        appSettings.readFeatureModuleStateFresh = originalReadFeatureModuleStateFresh;
+    });
 
     // Auth mock
     const originalGetUser = supabaseModule.supabase.auth.getUser;

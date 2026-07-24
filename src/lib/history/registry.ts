@@ -10,6 +10,8 @@ export const HISTORY_TYPES = [
   'face',
   'qimen',
   'daliuren',
+  'meihua',
+  'xiaoliuren',
 ] as const;
 
 export type HistoryType = typeof HISTORY_TYPES[number];
@@ -110,6 +112,22 @@ export const HISTORY_CONFIG: Record<HistoryType, HistoryConfig> = {
     sessionKey: 'daliuren_params',
     summarySelect: 'id, day_ganzhi, result_data, question, conversation_id, created_at, conversation:conversations(source_data)',
     useTimestamp: true,
+  },
+  meihua: {
+    label: '梅花历史',
+    tableName: 'meihua_divinations',
+    historyPath: '/meihua/history',
+    detailPath: '/meihua/result',
+    sessionKey: 'meihua_result',
+    summarySelect: 'id, question, method, cast_datetime, main_hexagram, changed_hexagram, input_data, result_data, conversation_id, created_at, conversation:conversations(source_data)',
+  },
+  xiaoliuren: {
+    label: '小六壬历史',
+    tableName: 'xiaoliuren_divinations',
+    historyPath: '/xiaoliuren/history',
+    detailPath: '/xiaoliuren/result',
+    sessionKey: 'xiaoliuren_result',
+    summarySelect: 'id, question, solar_datetime, lunar_month, lunar_day, is_leap_month, shichen, final_status, input_data, result_data, conversation_id, created_at, conversation:conversations(source_data)',
   },
 };
 
@@ -300,6 +318,38 @@ export async function buildHistorySummary(
     };
   }
 
+  if (type === 'meihua') {
+    const changedHexagram = typeof row.changed_hexagram === 'string' && row.changed_hexagram.trim()
+      ? row.changed_hexagram.trim()
+      : undefined;
+    return {
+      id: String(row.id),
+      title: truncateTitle(String(row.main_hexagram || '梅花易数')),
+      changedTitle: changedHexagram,
+      question: typeof row.question === 'string' && row.question.trim() ? row.question.trim() : undefined,
+      createdAt: String(row.created_at || ''),
+      modelName,
+      badges: typeof row.method === 'string' ? [row.method] : undefined,
+      conversationId: typeof row.conversation_id === 'string' ? row.conversation_id : null,
+    };
+  }
+
+  if (type === 'xiaoliuren') {
+    return {
+      id: String(row.id),
+      title: truncateTitle(String(row.final_status || '小六壬')),
+      question: typeof row.question === 'string' && row.question.trim() ? row.question.trim() : undefined,
+      createdAt: String(row.created_at || ''),
+      modelName,
+      badges: [
+        row.is_leap_month ? `闰${row.lunar_month}月` : `${row.lunar_month}月`,
+        `${row.lunar_day}日`,
+        typeof row.shichen === 'string' ? row.shichen : '',
+      ].filter((value): value is string => Boolean(value)),
+      conversationId: typeof row.conversation_id === 'string' ? row.conversation_id : null,
+    };
+  }
+
   return {
     id: String(row.id),
     title: '未知记录',
@@ -469,6 +519,31 @@ export async function buildHistoryRestorePayload(
         createdAt: row.created_at,
         chartId: row.id,
         conversationId: row.conversation_id || null,
+      },
+    };
+  }
+
+  if (type === 'meihua') {
+    return {
+      sessionKey: config.sessionKey,
+      detailPath: config.detailPath,
+      sessionData: {
+        input: row.input_data && typeof row.input_data === 'object' ? row.input_data : undefined,
+        resultData: row.result_data && typeof row.result_data === 'object' ? row.result_data : undefined,
+        divinationId: row.id,
+        conversationId: row.conversation_id || undefined,
+      },
+    };
+  }
+
+  if (type === 'xiaoliuren') {
+    return {
+      sessionKey: config.sessionKey,
+      detailPath: config.detailPath,
+      sessionData: {
+        resultData: row.result_data && typeof row.result_data === 'object' ? row.result_data : undefined,
+        divinationId: row.id,
+        conversationId: row.conversation_id || undefined,
       },
     };
   }

@@ -13,7 +13,7 @@ export type UserIdentityProfile = {
 };
 
 export const DEFAULT_NAV_ORDER = [
-  'bazi', 'hepan', 'ziwei', 'liuyao', 'qimen', 'daliuren', 'tarot', 'face', 'palm', 'mbti', 'daily', 'monthly',
+  'bazi', 'hepan', 'ziwei', 'liuyao', 'meihua', 'qimen', 'daliuren', 'xiaoliuren', 'tarot', 'face', 'palm', 'mbti', 'daily', 'monthly',
 ] as const;
 
 export const DEFAULT_TOOL_ORDER = [
@@ -25,7 +25,7 @@ export const DEFAULT_MOBILE_MAIN_ITEMS = [
 ] as const;
 
 export const DEFAULT_MOBILE_DRAWER_ORDER = [
-  'bazi', 'records', 'community', 'hepan', 'ziwei', 'tarot', 'qimen', 'daliuren',
+  'bazi', 'records', 'community', 'hepan', 'ziwei', 'tarot', 'meihua', 'qimen', 'daliuren', 'xiaoliuren',
   'face', 'palm', 'mbti', 'monthly', 'settings-profile', 'settings-general',
   'settings-upgrade',
   'settings-personalization', 'settings-knowledge-base', 'settings-help',

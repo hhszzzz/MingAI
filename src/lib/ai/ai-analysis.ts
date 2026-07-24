@@ -25,6 +25,8 @@ const SOURCE_PERSONALITY_MAP: Partial<Record<AnalysisSourceType, AIPersonality>>
     hepan: 'hepan',
     qimen: 'qimen',
     daliuren: 'daliuren',
+    meihua: 'meihua',
+    xiaoliuren: 'xiaoliuren',
 };
 
 export class AIAnalysisConversationPersistenceError extends Error {
@@ -50,7 +52,7 @@ export interface CreateAIAnalysisParams {
     title: string;
     aiResponse: string;
     historyBinding?: {
-        type: 'mbti' | 'tarot' | 'hepan' | 'palm' | 'face' | 'qimen' | 'daliuren' | 'liuyao';
+        type: 'mbti' | 'tarot' | 'hepan' | 'palm' | 'face' | 'qimen' | 'daliuren' | 'liuyao' | 'meihua' | 'xiaoliuren';
         payload: Record<string, unknown>;
     } | null;
 }

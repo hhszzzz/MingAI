@@ -1,7 +1,7 @@
 import { test, type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
 import { NextRequest } from 'next/server';
-import { ensureRouteTestEnv } from './helpers/route-mock';
+import { ensureRouteTestEnv, mockAIFeatureState } from './helpers/route-mock';
 import { createMockUIMessageResult } from './helpers/ui-message-result';
 
 ensureRouteTestEnv();
@@ -15,6 +15,7 @@ type RouteBindingSpec = {
 };
 
 async function runRouteHistoryBindingTest(t: TestContext, spec: RouteBindingSpec) {
+  mockAIFeatureState(t);
     const apiUtilsModule = require('../lib/api-utils') as typeof import('../lib/api-utils');
     const credits = require('../lib/user/credits') as any;
     const aiAccessModule = require('../lib/ai/ai-access') as any;
@@ -174,6 +175,63 @@ const routeSpecs: RouteBindingSpec[] = [
             assert.equal(createArgs.sourceType, 'daliuren');
             assert.equal(historyBinding?.type, 'daliuren');
             assert.equal(historyBinding?.payload?.divination_id, 'divination-1');
+        },
+    },
+    {
+        name: 'meihua',
+        routeModulePath: '../app/api/meihua/route',
+        url: 'http://localhost/api/meihua',
+        buildBody: () => {
+            const { calculateMeihuaBundle } = require('../lib/divination/meihua') as typeof import('../lib/divination/meihua');
+            const resultData = calculateMeihuaBundle({
+                question: '梅花解读测试',
+                date: '2026-04-04T10:30',
+                method: 'number_pair',
+                numbers: [2, 7],
+            });
+            resultData.result.mainHexagram.name = '客户端伪造卦名';
+            return {
+                action: 'interpret',
+                stream: true,
+                divinationId: 'meihua-1',
+                resultData,
+            };
+        },
+        assertCreateArgs: (createArgs) => {
+            const sourceData = createArgs.sourceData as Record<string, unknown> | undefined;
+            const historyBinding = createArgs.historyBinding as { type?: string; payload?: Record<string, unknown> } | undefined;
+            assert.equal(createArgs.sourceType, 'meihua');
+            assert.notEqual(sourceData?.main_hexagram, '客户端伪造卦名');
+            assert.equal(historyBinding?.type, 'meihua');
+            assert.equal(historyBinding?.payload?.divination_id, 'meihua-1');
+        },
+    },
+    {
+        name: 'xiaoliuren',
+        routeModulePath: '../app/api/xiaoliuren/route',
+        url: 'http://localhost/api/xiaoliuren',
+        buildBody: () => {
+            const { calculateXiaoliurenBundle } = require('../lib/divination/xiaoliuren') as typeof import('../lib/divination/xiaoliuren');
+            const resultData = calculateXiaoliurenBundle({
+                date: '2025-08-01T01:00',
+                question: '小六壬解读测试',
+            });
+            resultData.result.hourStatus = '客户端伪造落宫' as never;
+            return {
+                action: 'interpret',
+                stream: true,
+                divinationId: 'xiaoliuren-1',
+                resultData,
+            };
+        },
+        assertCreateArgs: (createArgs) => {
+            const sourceData = createArgs.sourceData as Record<string, unknown> | undefined;
+            const historyBinding = createArgs.historyBinding as { type?: string; payload?: Record<string, unknown> } | undefined;
+            assert.equal(createArgs.sourceType, 'xiaoliuren');
+            assert.notEqual(sourceData?.final_status, '客户端伪造落宫');
+            assert.equal(sourceData?.shichen, '丑时');
+            assert.equal(historyBinding?.type, 'xiaoliuren');
+            assert.equal(historyBinding?.payload?.divination_id, 'xiaoliuren-1');
         },
     },
 ];

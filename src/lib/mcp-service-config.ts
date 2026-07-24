@@ -5,7 +5,7 @@ export type McpPublicTool = {
 
 export const MCP_STDIO_PACKAGE_NAME = 'taibu-mcp';
 export const MCP_STDIO_GLOBAL_COMMAND = 'taibu-mcp';
-export const MCP_OAUTH_URL = 'https://mcp.mingai.fun/mcp';
+export const MCP_PUBLIC_URL = 'https://mcp.mingai.fun/mcp';
 
 export const MCP_PUBLIC_TOOLS: McpPublicTool[] = [
   { id: 'bazi', label: '八字排盘' },
@@ -46,12 +46,12 @@ export function buildMcpStdioGlobalConfig(): string {
   }, null, 2);
 }
 
-export function buildMcpOAuthConfig(): string {
+export function buildMcpPublicHttpConfig(): string {
   return JSON.stringify({
     mcpServers: {
       taibu: {
         type: 'streamable-http',
-        url: MCP_OAUTH_URL,
+        url: MCP_PUBLIC_URL,
       },
     },
   }, null, 2);

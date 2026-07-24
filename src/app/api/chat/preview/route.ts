@@ -9,8 +9,12 @@ import { buildChatPromptContext } from '@/lib/server/chat/prompt-context';
 import { getDefaultModelConfigAsync, getModelConfigAsync } from '@/lib/server/ai-config';
 import { getEffectiveMembershipType, MembershipResolutionError } from '@/lib/user/membership-server';
 import type { MembershipType } from '@/lib/user/membership';
+import { getGlobalAIFeatureGuardResponse } from '@/lib/api/ai-feature-guard';
 
 export async function POST(request: NextRequest) {
+    const featureGuardResponse = await getGlobalAIFeatureGuardResponse();
+    if (featureGuardResponse) return featureGuardResponse;
+
     const auth = await requireUserContext(request);
     if ('error' in auth) {
         return jsonError(auth.error.message, auth.error.status);

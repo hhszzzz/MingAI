@@ -5,7 +5,7 @@ import { IS_NODE_TEST_RUNTIME } from "@/lib/runtime";
 
 export const FEATURE_MODULE_IDS = [
   'bazi', 'hepan', 'ziwei', 'tarot', 'liuyao', 'qimen',
-  'daliuren',
+  'daliuren', 'meihua', 'xiaoliuren',
   'face', 'palm', 'mbti', 'chat', 'daily', 'monthly',
   'records', 'community', 'knowledge-base', 'mcp-service',
   'checkin', 'credits', 'charts', 'ai-personalization',
@@ -22,16 +22,18 @@ export const FEATURE_MODULE_LABELS: Record<FeatureModuleId, string> = {
   liuyao: '六爻',
   qimen: '奇门遁甲',
   daliuren: '大六壬',
+  meihua: '梅花易数',
+  xiaoliuren: '小六壬',
   face: '面相',
   palm: '手相',
   mbti: 'MBTI',
-  chat: 'AI 对话',
+  chat: 'AI 功能',
   daily: '日运',
   monthly: '月运',
   records: '命理记录',
   community: '社区',
   'knowledge-base': '知识库',
-  'mcp-service': 'MCP OAuth',
+  'mcp-service': 'MCP 服务',
   checkin: '签到',
   credits: '积分流水',
   charts: '我的命盘',
@@ -60,6 +62,11 @@ export type FeatureTogglesReadResult = {
   loaded: boolean;
   toggles: Record<string, boolean>;
 };
+
+export type FeatureModuleState =
+  | { status: 'enabled' }
+  | { status: 'disabled' }
+  | { status: 'unavailable'; error?: string };
 
 function normalizeFeatureToggleRows(rows: FeatureToggleRow[] | null | undefined): Record<string, boolean> {
   const toggleStates: Record<string, boolean> = {};
@@ -201,5 +208,31 @@ export async function isFeatureModuleEnabled(featureId: FeatureModuleId): Promis
       console.error('[app-settings] Failed to read feature toggle:', error);
     }
     return true;
+  }
+}
+
+/**
+ * Read one feature state without using the permissive UI cache/fallback.
+ * Server-side capability checks use this helper so a configuration read
+ * failure cannot accidentally expose a disabled capability.
+ */
+export async function readFeatureModuleStateFresh(featureId: FeatureModuleId): Promise<FeatureModuleState> {
+  try {
+    const supabase = getSystemAdminClient();
+    const { data, error } = await readFeatureToggleValue(supabase, featureId);
+    if (error) {
+      return { status: 'unavailable', error: error.message };
+    }
+    if (data && typeof data.setting_value !== 'boolean') {
+      return { status: 'unavailable', error: 'invalid feature setting value' };
+    }
+    return data?.setting_value === true
+      ? { status: 'disabled' }
+      : { status: 'enabled' };
+  } catch (error) {
+    return {
+      status: 'unavailable',
+      error: error instanceof Error ? error.message : 'feature state unavailable',
+    };
   }
 }

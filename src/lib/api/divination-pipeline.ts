@@ -42,6 +42,7 @@ import type { AIPersonality } from '@/types';
 import type { ChartType } from '@/lib/visualization/chart-types';
 import { buildVisualizationOutputContractPrompt } from '@/lib/visualization/prompt';
 import type { ChartTextDetailLevel } from '@/lib/divination/detail-level';
+import { getGlobalAIFeatureGuardResponse } from '@/lib/api/ai-feature-guard';
 
 // ─── Types ───
 
@@ -418,6 +419,9 @@ export function createDirectInterpretHandlers<
     },
   ): Promise<Response | ResolvedPreparedBase | ResolvedPreparedWithPrompts> => {
     const { runPrecheck, includePrompts } = options;
+    const featureGuardResponse = await getGlobalAIFeatureGuardResponse();
+    if (featureGuardResponse) return featureGuardResponse;
+
     const parsed = parseInput(body);
     if (isRouteError(parsed)) {
       return jsonError(parsed.error, parsed.status, { success: false });
@@ -647,6 +651,9 @@ export function createInterpretHandler<
     request: NextRequest,
     body: Record<string, unknown>,
   ): Promise<Response> {
+    const featureGuardResponse = await getGlobalAIFeatureGuardResponse();
+    if (featureGuardResponse) return featureGuardResponse;
+
     // Parse input first (fast fail for invalid params)
     const parsed = parseInput(body);
     if (isRouteError(parsed)) {

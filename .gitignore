@@ -55,8 +55,10 @@ next-env.d.ts
 # pnpm cache
 .pnpm-store
 
-# migration files
-supabase/migrations
+# migration files (opt in reviewed migrations explicitly)
+supabase/migrations/*
+!supabase/migrations/20260723_100000_create_meihua_xiaoliuren_web.sql
+!supabase/migrations/20260723_110000_drop_mcp_auth_storage.sql
 
 # docs
 docs/*

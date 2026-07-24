@@ -6,6 +6,8 @@ export type ChartTextDetailTool =
   | 'liuyao'
   | 'qimen'
   | 'daliuren'
+  | 'meihua'
+  | 'xiaoliuren'
   | 'tarot'
   | 'almanac';
 

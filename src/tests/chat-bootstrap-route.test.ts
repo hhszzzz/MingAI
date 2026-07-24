@@ -1,11 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { NextRequest } from 'next/server';
+import { mockAIFeatureState } from './helpers/route-mock';
 
 process.env.SUPABASE_URL = 'http://localhost';
 process.env.SUPABASE_ANON_KEY = 'test-anon';
 
 test('chat bootstrap route returns ordered prompt knowledge bases', async (t) => {
+  mockAIFeatureState(t);
   const apiUtilsModule = require('../lib/api-utils') as typeof import('../lib/api-utils');
   type RequireUserContextResult = Awaited<ReturnType<typeof apiUtilsModule.requireUserContext>>;
 
@@ -86,6 +88,7 @@ test('chat bootstrap route returns ordered prompt knowledge bases', async (t) =>
 });
 
 test('chat bootstrap route rejects anonymous requests', async (t) => {
+  mockAIFeatureState(t);
   const apiUtilsModule = require('../lib/api-utils') as typeof import('../lib/api-utils');
   type RequireUserContextResult = Awaited<ReturnType<typeof apiUtilsModule.requireUserContext>>;
   const originalRequireUserContext = apiUtilsModule.requireUserContext;
@@ -107,6 +110,7 @@ test('chat bootstrap route rejects anonymous requests', async (t) => {
 });
 
 test('chat bootstrap route hides prompt knowledge bases for free membership', async (t) => {
+  mockAIFeatureState(t);
   const apiUtilsModule = require('../lib/api-utils') as typeof import('../lib/api-utils');
   type RequireUserContextResult = Awaited<ReturnType<typeof apiUtilsModule.requireUserContext>>;
 
@@ -183,6 +187,7 @@ test('chat bootstrap route hides prompt knowledge bases for free membership', as
 });
 
 test('chat bootstrap route hides prompt knowledge bases when knowledge-base feature is disabled', async (t) => {
+  mockAIFeatureState(t);
   const apiUtilsModule = require('../lib/api-utils') as typeof import('../lib/api-utils');
   const appSettingsModule = require('../lib/app-settings') as typeof import('../lib/app-settings');
   type RequireUserContextResult = Awaited<ReturnType<typeof apiUtilsModule.requireUserContext>>;

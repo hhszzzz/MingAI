@@ -12,9 +12,13 @@ import { getEffectiveMembershipType, MembershipResolutionError } from '@/lib/use
 import { getModelAccessForMembershipAsync } from '@/lib/ai/ai-access';
 import { getAuthContext, jsonError, jsonOk } from '@/lib/api-utils';
 import { getModelUsageType, isUserSelectableUsageType } from '@/lib/ai/source-runtime';
+import { getGlobalAIFeatureGuardResponse } from '@/lib/api/ai-feature-guard';
 
 export async function GET(request: NextRequest) {
     try {
+        const featureGuardResponse = await getGlobalAIFeatureGuardResponse();
+        if (featureGuardResponse) return featureGuardResponse;
+
         const catalog = request.nextUrl.searchParams.get('catalog');
 
         // BYOK 目录独立于本站会员限制，只暴露聊天模型的安全元数据。

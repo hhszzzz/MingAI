@@ -210,7 +210,7 @@ test('general settings panel initializes once per user id instead of refetching 
   assert.equal(panelSource.includes('}, [load]);'), false);
 });
 
-test('mcp settings tab stays accessible even when the oauth toggle is disabled', () => {
+test('mcp settings tab follows the public service feature toggle', () => {
   const flags = {
     upgradeEnabled: true,
     chartsEnabled: true,
@@ -223,33 +223,34 @@ test('mcp settings tab stays accessible even when the oauth toggle is disabled',
 
   const tabs = getSettingsCenterTabs(flags);
 
-  assert.equal(tabs.some((tab) => tab.id === 'mcp-service' && tab.disabled === false), true);
-  assert.equal(getSettingsCenterDisabledState('mcp-service', flags), null);
+  assert.equal(tabs.some((tab) => tab.id === 'mcp-service' && tab.disabled === true), true);
+  assert.deepEqual(getSettingsCenterDisabledState('mcp-service', flags), {
+    title: '暂未开放',
+    description: '当前 MCP 服务入口不可用。',
+  });
 });
 
-test('mcp service panel is stdio-first and no longer exposes api key setup', () => {
+test('mcp service panel exposes public remote access without login or api keys', () => {
   const panelSource = readFileSync(resolve(process.cwd(), 'src/components/settings/panels/McpServicePanel.tsx'), 'utf8');
   const registrySource = readFileSync(resolve(process.cwd(), 'src/lib/navigation/registry.ts'), 'utf8');
   const featureToggleSource = readFileSync(resolve(process.cwd(), 'src/components/admin/FeatureTogglePanel.tsx'), 'utf8');
 
-  assert.equal(panelSource.includes("useState<McpConnectionMode>('stdio')"), true);
-  assert.equal(panelSource.includes('MCP 接入方式'), false);
+  assert.equal(panelSource.includes("useState<McpConnectionMode>('remote')"), true);
+  assert.equal(panelSource.includes('MCP 接入方式'), true);
   assert.equal(panelSource.includes('可用工具'), true);
-  assert.equal(panelSource.indexOf('可用工具') < panelSource.indexOf('Stdio 本地接入'), true);
-  assert.equal(panelSource.includes('<table className="w-full text-sm">'), true);
-  assert.equal(panelSource.includes('Stdio 本地接入'), true);
-  assert.equal(panelSource.includes('快速开始'), true);
-  assert.equal(panelSource.includes('LockKeyhole'), true);
-  assert.equal(panelSource.includes('disabled={!oauthEnabled}'), true);
-  assert.equal(panelSource.includes('disabled:cursor-not-allowed'), true);
+  assert.equal(panelSource.includes('公开 Streamable HTTP'), true);
+  assert.equal(panelSource.includes('无需认证'), true);
+  assert.equal(panelSource.includes('本地 Stdio'), true);
+  assert.equal(panelSource.includes('useSessionSafe'), false);
+  assert.equal(panelSource.includes('SettingsLoginRequired'), false);
   assert.equal(panelSource.includes('border-amber-500'), false);
   assert.equal(panelSource.includes('bg-amber-500/10'), false);
   assert.equal(panelSource.includes("bg-amber-500/15 px-2 py-0.5 text-[11px]"), false);
   assert.equal(panelSource.includes('API Key 认证'), false);
   assert.equal(panelSource.includes('/api/user/mcp-key'), false);
-  assert.equal(panelSource.includes('管理员当前已关闭 OAuth 接入'), true);
-  assert.equal(registrySource.includes("{ id: 'mcp-service', label: 'MCP OAuth' }"), true);
-  assert.equal(featureToggleSource.includes('MCP OAuth 仅影响远程 OAuth 接入'), true);
+  assert.equal(panelSource.includes('OAuth'), false);
+  assert.equal(registrySource.includes("{ id: 'mcp-service', label: 'MCP 服务' }"), true);
+  assert.equal(featureToggleSource.includes('MCP OAuth'), false);
 });
 
 test('privacy and terms pages link back to canonical settings help route instead of /help shell', () => {

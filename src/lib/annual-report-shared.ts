@@ -10,6 +10,8 @@ export type AnnualReportFeatureUsage = {
     fortune: number;
     qimen: number;
     daliuren: number;
+    meihua: number;
+    xiaoliuren: number;
     dream: number;
     chat: number;
 };
@@ -50,6 +52,8 @@ export const ANNUAL_REPORT_FEATURE_NAMES: Record<keyof AnnualReportFeatureUsage,
     fortune: '运势分析',
     qimen: '奇门遁甲',
     daliuren: '大六壬',
+    meihua: '梅花易数',
+    xiaoliuren: '小六壬',
     dream: '解梦分析',
     chat: 'AI 对话',
 };

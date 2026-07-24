@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import { SettingsCenterLink } from '@/components/settings/SettingsCenterLink';
+import { AIFeatureGate } from '@/components/ai/AIFeatureGate';
 
 export function ResultFooterLinks() {
     return (
-        <div className="mt-6 flex justify-center gap-4">
+        <AIFeatureGate><div className="mt-6 flex justify-center gap-4">
             <Link href="/bazi" className="text-sm text-foreground-secondary hover:text-accent transition-colors">
                 新建排盘
             </Link>
@@ -15,6 +16,6 @@ export function ResultFooterLinks() {
             <Link href="/chat" className="text-sm text-foreground-secondary hover:text-accent transition-colors">
                 AI 对话
             </Link>
-        </div>
+        </div></AIFeatureGate>
     );
 }

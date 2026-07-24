@@ -11,9 +11,13 @@ import { checkDifyAccess } from '@/lib/ai/dify-access';
 import { getEffectiveMembershipType, MembershipResolutionError } from '@/lib/user/membership-server';
 import type { DifyMode } from '@/types';
 import { jsonError, jsonOk, requireUserContext } from '@/lib/api-utils';
+import { getGlobalAIFeatureGuardResponse } from '@/lib/api/ai-feature-guard';
 
 export async function POST(request: NextRequest) {
     try {
+        const featureGuardResponse = await getGlobalAIFeatureGuardResponse();
+        if (featureGuardResponse) return featureGuardResponse;
+
         // 检查 Dify API 是否可用
         if (!isDifyAvailable()) {
             return jsonError('Dify 服务未配置', 503, { success: false });

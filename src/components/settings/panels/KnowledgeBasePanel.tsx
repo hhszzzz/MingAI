@@ -93,6 +93,8 @@ const sourceTypeLabel: Record<string, string> = {
     monthly_fortune: '本月运势',
     qimen_chart: '奇门遁甲',
     daliuren_divination: '大六壬',
+    meihua_divination: '梅花易数',
+    xiaoliuren_divination: '小六壬',
 };
 
 export default function KnowledgeBasePanel() {
