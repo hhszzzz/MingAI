@@ -24,7 +24,7 @@ Language: **中文** | [English](README.en.md)
 
 - **多命理体系** - 八字、六爻、紫微斗数、奇门遁甲、大六壬、梅花易数、塔罗、MBTI、面相、手相、合盘、周公解梦
 - **AI智能分析** - 支持导出命理体系文本进行AI分析，多模型支持，深度推理，视觉识别
-- **MCP Server** - 支持 Model Context Protocol（MCP），可在支持MCP的客户端中直接调用命理工具
+- **MCP Server** - 支持 Model Context Protocol（MCP），可在支持MCP的agent中直接调用命理工具
 - **历史记录、知识库与@提及** - 支持存储所有命理体系的记录，可将命理体系纳入个人知识库，显式引用命理体系数据源
 - **AI个性化** - 表达风格/用户画像/自定义指令 + 上下文、提示词预算可视化
 - **多端体验** - Web + iOS/Android 客户端
@@ -53,22 +53,24 @@ Language: **中文** | [English](README.en.md)
 
 ## MCP
 
-太卜提供 MCP，可在支持 MCP 的客户端中直接调用命理工具。
+太卜提供已部署的公共 MCP Server，可在支持 MCP 的 agent 中直接调用全部命理工具。
 
 ### 快速配置
 
-配置中添加以下内容即可使用
+在客户端中导入以下 Server 配置即可使用：
 
 ```json
 {
   "mcpServers": {
     "taibu": {
-      "command": "npx",
-      "args": ["-y", "taibu-mcp"]
+      "type": "streamable-http",
+      "url": "https://mcp.mingai.fun/mcp"
     }
   }
 }
 ```
+
+如需完全离线的本地 Stdio 模式，请参阅 [`packages/mcp/README.md`](packages/mcp/README.md)。
 
 ### 支持的工具
 
@@ -124,7 +126,7 @@ docker compose -f docker-compose.mcp.yml up -d --build
 
 默认端口：
 - Web: `3000` （[http://localhost:3000](http://localhost:3000)）
-- MCP: `3001`
+- MCP: `3001`（[http://localhost:3001/mcp](http://localhost:3001/mcp)）
 
 ### 开发环境部署
 

@@ -24,7 +24,7 @@ Language: [中文](README.md) | **English**
 
 - **Multiple Metaphysics Systems** - Bazi, Liuyao, Ziwei Doushu, Qimen Dunjia, Da Liu Ren, MeiHua, Tarot, MBTI, Face Reading, Palm Reading, Synastry, Dream Interpretation
 - **AI-Powered Analysis** - Export chart/divination text for AI analysis with multi-model support, deep reasoning, and visual recognition
-- **MCP Server** - Supports Model Context Protocol (MCP), allowing direct use of metaphysics tools in MCP-compatible clients
+- **MCP Server** - Supports Model Context Protocol (MCP), allowing direct use of metaphysics tools in MCP-compatible agent
 - **History, Knowledge Base, and @Mentions** - Store records across all systems, add them into your personal knowledge base, and explicitly reference data sources
 - **AI Personalization** - Expression style, user profile, and custom instructions with context/prompt budget visualization
 - **Cross-Platform Experience** - Web + iOS/Android clients
@@ -53,22 +53,24 @@ Language: [中文](README.md) | **English**
 
 ## MCP Server
 
-TaiBu provides an MCP (Model Context Protocol) server, so you can directly call metaphysics tools from MCP-compatible clients.
+TaiBu runs a public MCP (Model Context Protocol) server that exposes every metaphysics tool to compatible agent.
 
 ### Quick Setup
 
-Add to your Claude Desktop / Cherry Studio MCP config — no manual download needed, just requires [Node.js](https://nodejs.org) 18+:
+Import this server entry into your MCP client:
 
 ```json
 {
   "mcpServers": {
     "taibu": {
-      "command": "npx",
-      "args": ["-y", "taibu-mcp"]
+      "type": "streamable-http",
+      "url": "https://mcp.mingai.fun/mcp"
     }
   }
 }
 ```
+
+For a fully local Stdio setup, see [`packages/mcp/README.md`](packages/mcp/README.md).
 
 ### Supported Tools
 
@@ -124,7 +126,7 @@ docker compose -f docker-compose.mcp.yml up -d --build
 
 Default ports:
 - Web: `3000` ([http://localhost:3000](http://localhost:3000))
-- MCP: `3001`
+- MCP: `3001` ([http://localhost:3001/mcp](http://localhost:3001/mcp))
 
 ### Local Development
 
