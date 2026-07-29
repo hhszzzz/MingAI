@@ -1,6 +1,6 @@
 {
   "name": "taibu-mcp-server",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "TaiBu public MCP Server - Online Streamable HTTP without authentication",
   "license": "MIT",
   "homepage": "https://github.com/hhszzzz/taibu",
@@ -39,9 +39,11 @@
   },
   "dependencies": {
     "taibu-core": "workspace:*",
-    "@modelcontextprotocol/sdk": "1.25.3",
+    "@modelcontextprotocol/node": "2.0.0",
+    "@modelcontextprotocol/server": "2.0.0",
     "dotenv": "^17.2.3",
-    "express": "^4.21.0"
+    "express": "^4.21.0",
+    "hono": "^4.11.4"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",

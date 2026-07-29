@@ -53,7 +53,7 @@ Language: **中文** | [English](README.en.md)
 
 ## MCP
 
-太卜提供已部署的公共 MCP Server，可在支持 MCP 的 agent 中直接调用全部命理工具。
+太卜提供已部署的公共 MCP Server，可在支持 MCP 的 agent 中直接调用全部命理工具。服务已升级到 MCP `2026-07-28`（北京时间 2026-07-29 发布），并兼容 2025 年协议的无状态客户端。
 
 ### 快速配置
 
@@ -70,7 +70,7 @@ Language: **中文** | [English](README.en.md)
 }
 ```
 
-如需完全离线的本地 Stdio 模式，请参阅 [`packages/mcp/README.md`](packages/mcp/README.md)。
+新版客户端会自动执行 `server/discover` 并生成每请求协议元数据，无需配置 OAuth、API Key 或会话 Header。如需完全离线的本地 stdio 模式，请参阅 [`packages/mcp/README.md`](packages/mcp/README.md)。
 
 ### 支持的工具
 

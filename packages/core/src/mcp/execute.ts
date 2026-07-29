@@ -1,10 +1,19 @@
-import type { ListedToolDefinition } from './contract.js';
+import type { ListedToolDefinition, ToolDefinition } from './contract.js';
 import { toolByName, tools } from './tools.js';
 import { validateInput } from './input-validator.js';
+
+export function getToolTitle(definition: Pick<ToolDefinition, 'name' | 'description' | 'title'>): string {
+  const explicitTitle = definition.title?.trim();
+  if (explicitTitle) return explicitTitle;
+
+  const [descriptionTitle] = definition.description.split(/\s+-\s+/, 1);
+  return descriptionTitle?.trim() || definition.name;
+}
 
 export function listToolDefinitions(): ListedToolDefinition[] {
   return tools.map((tool) => ({
     ...tool.definition,
+    title: getToolTitle(tool.definition),
     outputSchema: tool.outputSchema,
   }));
 }

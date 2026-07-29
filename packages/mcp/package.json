@@ -1,6 +1,6 @@
 {
   "name": "taibu-mcp",
-  "version": "3.4.1",
+  "version": "3.5.0",
   "description": "TaiBu MCP Server - 命理计算工具 (stdio)",
   "license": "MIT",
   "homepage": "https://github.com/hhszzzz/taibu",
@@ -29,7 +29,7 @@
   },
   "dependencies": {
     "taibu-core": "workspace:*",
-    "@modelcontextprotocol/sdk": "1.25.3"
+    "@modelcontextprotocol/server": "2.0.0"
   },
   "devDependencies": {
     "typescript": "^5.7.3"

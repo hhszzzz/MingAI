@@ -53,7 +53,7 @@ Language: [中文](README.md) | **English**
 
 ## MCP Server
 
-TaiBu runs a public MCP (Model Context Protocol) server that exposes every metaphysics tool to compatible agent.
+TaiBu runs a public MCP (Model Context Protocol) server that exposes every metaphysics tool to compatible agents. It now serves MCP `2026-07-28` and keeps stateless compatibility for 2025-era clients.
 
 ### Quick Setup
 
@@ -70,7 +70,7 @@ Import this server entry into your MCP client:
 }
 ```
 
-For a fully local Stdio setup, see [`packages/mcp/README.md`](packages/mcp/README.md).
+Modern clients automatically perform `server/discover` and supply the per-request protocol metadata; no OAuth, API key, or session header is required. For a fully local stdio setup, see [`packages/mcp/README.md`](packages/mcp/README.md).
 
 ### Supported Tools
 

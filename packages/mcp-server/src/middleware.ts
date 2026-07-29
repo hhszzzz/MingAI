@@ -120,26 +120,39 @@ export function rateLimitMiddleware(req: Request, res: Response, next: NextFunct
   return next();
 }
 
-const sseConnectionsByIp = new Map<string, number>();
+const subscriptionConnectionsByIp = new Map<string, number>();
 
-export function sseConnectionLimitMiddleware(req: Request, res: Response, next: NextFunction) {
-  if (req.method !== 'GET') return next();
-
-  const ip = getClientIp(req);
-  const limit = readPositiveIntEnv('MCP_MAX_SSE_PER_IP', 3);
-  const current = sseConnectionsByIp.get(ip) ?? 0;
-  if (current >= limit) {
-    return res.status(429).json({ error: 'Too many SSE connections' });
+export function subscriptionConnectionLimitMiddleware(req: Request, res: Response, next: NextFunction) {
+  const body = req.body;
+  if (
+    req.method !== 'POST'
+    || !body
+    || typeof body !== 'object'
+    || Array.isArray(body)
+    || (body as { method?: unknown }).method !== 'subscriptions/listen'
+  ) {
+    return next();
   }
 
-  sseConnectionsByIp.set(ip, current + 1);
+  const ip = getClientIp(req);
+  const limit = readPositiveIntEnv('MCP_MAX_SUBSCRIPTIONS_PER_IP', 3);
+  const current = subscriptionConnectionsByIp.get(ip) ?? 0;
+  if (current >= limit) {
+    return res.status(429).json({
+      jsonrpc: '2.0',
+      error: { code: -32603, message: 'Too many subscription streams' },
+      id: (body as { id?: unknown }).id ?? null,
+    });
+  }
+
+  subscriptionConnectionsByIp.set(ip, current + 1);
   let released = false;
   const release = () => {
     if (released) return;
     released = true;
-    const nextCount = (sseConnectionsByIp.get(ip) ?? 1) - 1;
-    if (nextCount <= 0) sseConnectionsByIp.delete(ip);
-    else sseConnectionsByIp.set(ip, nextCount);
+    const nextCount = (subscriptionConnectionsByIp.get(ip) ?? 1) - 1;
+    if (nextCount <= 0) subscriptionConnectionsByIp.delete(ip);
+    else subscriptionConnectionsByIp.set(ip, nextCount);
   };
   res.once('close', release);
   res.once('finish', release);

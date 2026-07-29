@@ -87,33 +87,48 @@ test('rate limiter keys anonymous traffic by IP and method', async () => {
   }
 });
 
-test('SSE limit is per IP and releases the slot exactly once', async () => {
-  const { sseConnectionLimitMiddleware } = await importMiddleware();
-  const previous = process.env.MCP_MAX_SSE_PER_IP;
-  process.env.MCP_MAX_SSE_PER_IP = '1';
+test('subscription stream limit is per IP and releases the slot exactly once', async () => {
+  const { subscriptionConnectionLimitMiddleware } = await importMiddleware();
+  const previous = process.env.MCP_MAX_SUBSCRIPTIONS_PER_IP;
+  process.env.MCP_MAX_SUBSCRIPTIONS_PER_IP = '1';
   const ip = `203.0.113.${crypto.randomInt(1, 200)}`;
+  const listenRequest = {
+    ip,
+    method: 'POST',
+    body: { jsonrpc: '2.0', id: 1, method: 'subscriptions/listen', params: {} },
+  };
   try {
     const first = createResponseRecorder();
     let firstNext = false;
-    sseConnectionLimitMiddleware(createRequest({ ip, method: 'GET' }), first, () => { firstNext = true; });
+    subscriptionConnectionLimitMiddleware(createRequest(listenRequest), first, () => { firstNext = true; });
     assert.equal(firstNext, true);
 
     const blocked = createResponseRecorder();
     let blockedNext = false;
-    sseConnectionLimitMiddleware(createRequest({ ip, method: 'GET' }), blocked, () => { blockedNext = true; });
+    subscriptionConnectionLimitMiddleware(createRequest(listenRequest), blocked, () => { blockedNext = true; });
     assert.equal(blockedNext, false);
     assert.equal(blocked.statusCode, 429);
+    assert.equal(blocked.payload.error.code, -32603);
 
     first.emit('close');
     first.emit('finish');
     const afterClose = createResponseRecorder();
     let afterCloseNext = false;
-    sseConnectionLimitMiddleware(createRequest({ ip, method: 'GET' }), afterClose, () => { afterCloseNext = true; });
+    subscriptionConnectionLimitMiddleware(createRequest(listenRequest), afterClose, () => { afterCloseNext = true; });
     assert.equal(afterCloseNext, true);
     afterClose.emit('close');
+
+    const ordinaryRequest = createResponseRecorder();
+    let ordinaryNext = false;
+    subscriptionConnectionLimitMiddleware(createRequest({
+      ip,
+      method: 'POST',
+      body: { jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} },
+    }), ordinaryRequest, () => { ordinaryNext = true; });
+    assert.equal(ordinaryNext, true);
   } finally {
-    if (previous === undefined) delete process.env.MCP_MAX_SSE_PER_IP;
-    else process.env.MCP_MAX_SSE_PER_IP = previous;
+    if (previous === undefined) delete process.env.MCP_MAX_SUBSCRIPTIONS_PER_IP;
+    else process.env.MCP_MAX_SUBSCRIPTIONS_PER_IP = previous;
   }
 });
 

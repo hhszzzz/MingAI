@@ -2,6 +2,8 @@
 
 TaiBu 的本地 `stdio` MCP Server，适合直接接入 Claude Desktop、Cursor、Cherry Studio 等支持 MCP 的客户端。
 
+当前实现基于 MCP `2026-07-28` 与官方 TypeScript SDK v2，同时保留 2025 年协议的 `initialize` 兼容流程。新版客户端使用 `server/discover`，无需协议会话。
+
 ## 快速开始
 
 在 MCP 客户端配置中加入：
@@ -55,6 +57,8 @@ TaiBu 的本地 `stdio` MCP Server，适合直接接入 Claude Desktop、Cursor�
 
 如果你要稳定的结构化结果，请始终读取 `structuredContent`。
 
+在 MCP `2026-07-28` 客户端中，成功结果还会包含 `resultType: "complete"`；`server/discover` 与 `tools/list` 提供公共缓存提示。旧协议客户端维持原有结果形状。
+
 ## 其他安装方式
 
 ```bash
@@ -94,6 +98,7 @@ node packages/mcp/dist/index.js
 
 | 版本 | 批次说明 |
 |------|----------|
+| `3.5.0` | 升级 MCP `2026-07-28` 与官方 TypeScript SDK v2，兼容旧版 stdio 初始化流程 |
 | `3.4.1` | 修复 npm 包中 `taibu-core` 依赖误发为 `workspace:*`，恢复 `npx -y taibu-mcp` 可用性 |
 | `3.4.0` | 新增 `astrology` 西方占星命盘与流运 |
 | `3.3.0` | 新增 `taiyi` 太乙九星观测 |

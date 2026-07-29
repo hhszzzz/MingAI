@@ -61,6 +61,14 @@ test('root core entry should expose canonical json/text option types for newly a
   }
 });
 
+test('MCP tool titles should be present and derived from the canonical description prefix', () => {
+  const definitions = listToolDefinitions();
+  assert.equal(definitions.length, expectedDomains.length);
+  assert.equal(definitions.find((tool) => tool.name === 'bazi')?.title, '八字命盘');
+  assert.equal(definitions.find((tool) => tool.name === 'xiaoliuren')?.title, '小六壬占测');
+  assert.ok(definitions.every((tool) => typeof tool.title === 'string' && tool.title.length > 0));
+});
+
 test('tool schemas should encode runtime defaults and conditional requirements structurally', () => {
   const toolMap = new Map(listToolDefinitions().map((item) => [item.name, item]));
   const almanac = toolMap.get('almanac');

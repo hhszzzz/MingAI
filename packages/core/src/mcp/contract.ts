@@ -43,12 +43,14 @@ export type ToolOutputSchema = {
 
 export interface ToolDefinition {
   name: string;
+  title?: string;
   description: string;
   inputSchema: ToolInputSchema;
   annotations?: ToolAnnotation;
 }
 
 export type ListedToolDefinition = ToolDefinition & {
+  title: string;
   outputSchema: ToolOutputSchema;
 };
 

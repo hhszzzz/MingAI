@@ -1,56 +1,68 @@
 #!/usr/bin/env node
-/**
- * TaiBu MCP Server - Local (stdio)
- */
+/** TaiBu local MCP Server (stdio, MCP 2026-07-28 with legacy compatibility). */
 
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { createRequire } from 'node:module';
 import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
-
+  McpServer,
+  fromJsonSchema,
+  type CallToolResult,
+  type JsonSchemaType,
+} from '@modelcontextprotocol/server';
+import { serveStdio } from '@modelcontextprotocol/server/stdio';
 import {
-  executeTool,
-  buildListToolsPayload,
   buildToolSuccessPayload,
+  executeTool,
+  listToolDefinitions,
   normalizeTransportDetailLevel,
 } from 'taibu-core/mcp';
 
-import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { version } = require('../package.json') as { version: string };
+const PUBLIC_CACHE_TTL_MS = 5 * 60_000;
 
-// 创建服务器
-const server = new McpServer(
-  { name: 'taibu-mcp', version },
-  { capabilities: { tools: {} } }
-);
+function createMcpServer(): McpServer {
+  const server = new McpServer(
+    { name: 'taibu-mcp', version },
+    {
+      capabilities: { tools: {} },
+      instructions: '太卜提供命理、术数与占卜计算工具。工具结果同时包含规范文本与 canonical JSON。',
+      cacheHints: {
+        'server/discover': { ttlMs: PUBLIC_CACHE_TTL_MS, cacheScope: 'public' },
+        'tools/list': { ttlMs: PUBLIC_CACHE_TTL_MS, cacheScope: 'public' },
+      },
+    },
+  );
 
-// 列出工具
-server.server.setRequestHandler(ListToolsRequestSchema, async () => buildListToolsPayload());
-
-// 调用工具
-server.server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name, arguments: args } = request.params;
-  try {
-    const toolArgs = args === undefined ? {} : args;
-    const result = await executeTool(name, toolArgs);
-    const detailLevel = normalizeTransportDetailLevel(args?.detailLevel);
-    return buildToolSuccessPayload(name, result, { detailLevel });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return {
-      content: [{ type: 'text', text: `Error: ${message}` }],
-      isError: true,
-    };
+  for (const tool of listToolDefinitions()) {
+    server.registerTool(
+      tool.name,
+      {
+        title: tool.title,
+        description: tool.description,
+        inputSchema: fromJsonSchema<Record<string, unknown>>(tool.inputSchema as JsonSchemaType),
+        outputSchema: fromJsonSchema(tool.outputSchema as JsonSchemaType),
+        annotations: tool.annotations,
+      },
+      async (args): Promise<CallToolResult> => {
+        try {
+          const result = await executeTool(tool.name, args);
+          const detailLevel = normalizeTransportDetailLevel(args.detailLevel);
+          return buildToolSuccessPayload(tool.name, result, { detailLevel });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          return {
+            content: [{ type: 'text', text: `Error: ${message}` }],
+            isError: true,
+          };
+        }
+      },
+    );
   }
-});
 
-// 启动服务器
-async function main() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
+  return server;
 }
 
-main().catch(console.error);
+serveStdio(createMcpServer, {
+  legacy: 'serve',
+  onerror: (error) => console.error('[MCP stdio]', error),
+});
