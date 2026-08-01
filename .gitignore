@@ -67,3 +67,6 @@ docs/*
 .claude
 **/CLAUDE.md
 .ace-tool/
+
+# skill eval workspaces
+skills/*-workspace/

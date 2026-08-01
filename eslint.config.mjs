@@ -17,6 +17,9 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     ".worktrees/**",
     ".claude/worktrees/**",
+    // Generated skill artifacts (bundled vendor code) and eval workspaces.
+    "skills/*/scripts/vendor/**",
+    "skills/*-workspace/**",
   ]),
   {
     files: ["scripts/**/*.cjs"],
